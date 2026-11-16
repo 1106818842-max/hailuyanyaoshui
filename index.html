@@ -1,0 +1,2678 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="format-detection" content="telephone=no" />
+  <title>一滴海露，eye上海风温柔｜给眼睛放个假</title>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js" defer></script>
+  <script src="https://res.wx.qq.com/open/js/jweixin-1.6.0.js" defer></script>
+  <style>
+    :root {
+      --sea-dark:   #4A5A6A;
+      --sea-mid:    #6FB7D9;
+      --sea-light:  #BFE8F5;
+      --sea-bright: #E8F7FD;
+      --water:      #2CAEE6;
+      --water-deep: #0E87C4;
+      --brand-blue: #0062C4;
+      --ink:        #142336;
+      --ink-soft:   #5B6E7D;
+      --coral:      #FFB86B;
+      --coral-deep: #F0922E;
+      --white:      #FFFFFF;
+
+      --font-title: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", system-ui, sans-serif;
+      --font-body:  "PingFang SC", "Noto Sans SC", system-ui, -apple-system, sans-serif;
+
+      --ease-soft:   cubic-bezier(0.33, 1, 0.68, 1);
+      --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+      --z-page: 1;
+      --z-active: 5;
+      --z-hud: 30;
+      --z-toast: 70;
+      --z-wave: 80;
+      --z-modal: 90;
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      overscroll-behavior: none;
+      background: #1B2834;
+      font-family: var(--font-body);
+      color: var(--ink);
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    .app-stage {
+      position: relative;
+      width: 100%;
+      height: 100dvh;
+      margin: 0 auto;
+      overflow: hidden;
+      background: var(--sea-bright);
+      overscroll-behavior: none;
+    }
+
+    @media (min-width: 520px) {
+      body {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: radial-gradient(circle at 50% 30%, #27445C, #121E29);
+      }
+      .app-stage {
+        width: min(440px, calc(100dvh * 9 / 19.5));
+        height: min(956px, 96dvh);
+        border-radius: 34px;
+        box-shadow: 0 24px 70px rgba(0, 0, 0, 0.45), 0 0 0 6px rgba(255, 255, 255, 0.12);
+      }
+    }
+
+    /* 顶部全局 HUD：返回上一页 + 页码 + 轻柔BGM开关 */
+    .global-hud {
+      position: absolute;
+      top: max(12px, env(safe-area-inset-top));
+      left: 14px;
+      right: 14px;
+      z-index: var(--z-hud);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      pointer-events: none;
+    }
+    .global-hud > * { pointer-events: auto; }
+    .hud-left {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .back-prev-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+      padding: 5px 10px;
+      border: 1.5px solid rgba(14, 135, 196, 0.25);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.88);
+      backdrop-filter: blur(8px);
+      font-size: 11.5px;
+      font-weight: 700;
+      color: var(--ink);
+      cursor: pointer;
+      transition: transform 180ms, opacity 220ms;
+    }
+    .back-prev-btn:active { transform: scale(0.93); }
+    .back-prev-btn.is-hidden { opacity: 0; pointer-events: none; visibility: hidden; }
+
+    .page-pill {
+      padding: 5px 10px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.82);
+      backdrop-filter: blur(8px);
+      font-size: 11.5px;
+      font-weight: 700;
+      color: var(--brand-blue);
+      letter-spacing: 0.8px;
+      box-shadow: 0 4px 12px rgba(14, 135, 196, 0.12);
+    }
+
+    .audio-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 5px 11px;
+      border: 1.5px solid rgba(44, 174, 230, 0.35);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.88);
+      backdrop-filter: blur(8px);
+      font-size: 11.5px;
+      font-weight: 700;
+      color: var(--ink);
+      cursor: pointer;
+      transition: transform 200ms var(--ease-soft), background 200ms;
+    }
+    .audio-btn.is-playing {
+      background: var(--water);
+      color: var(--white);
+      border-color: var(--water);
+    }
+    .audio-btn:active { transform: scale(0.94); }
+
+    .pages-wrapper { position: relative; width: 100%; height: 100%; }
+
+    .page {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      z-index: var(--z-page);
+      transition: opacity 420ms var(--ease-soft), visibility 420ms;
+    }
+    .page.is-active {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+      z-index: var(--z-active);
+    }
+
+    .page-inner {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      padding: calc(max(14px, env(safe-area-inset-top)) + 42px) 18px calc(max(16px, env(safe-area-inset-bottom)) + 14px);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .section-title {
+      margin: 0 0 6px;
+      font-family: var(--font-title);
+      font-size: clamp(17px, 4.5vw, 20.5px);
+      line-height: 1.35;
+      font-weight: 800;
+      color: var(--ink);
+      text-align: center;
+      text-wrap: balance;
+    }
+    .section-title.light-ink { color: #F2F7FA; }
+
+    .section-sub {
+      margin: 0;
+      font-size: 12.5px;
+      line-height: 1.45;
+      color: var(--ink-soft);
+      text-align: center;
+      text-wrap: balance;
+    }
+
+    .tag-chip {
+      display: inline-block;
+      margin: 0 auto 6px;
+      padding: 3px 12px;
+      border-radius: 999px;
+      background: rgba(44, 174, 230, 0.14);
+      color: var(--water-deep);
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .btn-coral, .btn-sea, .btn-ghost, .btn-text {
+      border: none;
+      border-radius: 999px;
+      font-family: inherit;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: transform 220ms var(--ease-bounce), box-shadow 220ms;
+    }
+    .btn-coral {
+      padding: 12px 20px;
+      background: linear-gradient(135deg, var(--coral), var(--coral-deep));
+      color: var(--white);
+      font-size: 13.5px;
+      box-shadow: 0 8px 20px rgba(240, 146, 46, 0.34);
+    }
+    .btn-sea {
+      padding: 12px 18px;
+      background: linear-gradient(135deg, var(--water), var(--water-deep));
+      color: var(--white);
+      font-size: 13.5px;
+      box-shadow: 0 8px 20px rgba(14, 135, 196, 0.28);
+    }
+    .btn-ghost {
+      padding: 10px 14px;
+      background: rgba(255, 255, 255, 0.88);
+      border: 1.5px solid rgba(20, 35, 54, 0.18);
+      color: var(--ink);
+      font-size: 12.5px;
+    }
+    .btn-text {
+      padding: 8px 12px;
+      background: transparent;
+      color: var(--ink-soft);
+      font-size: 12px;
+      text-decoration: underline;
+    }
+    .btn-coral:active, .btn-sea:active, .btn-ghost:active { transform: scale(0.95); }
+
+    .floating-soft { animation: floatSoft 3.6s ease-in-out infinite; }
+    @keyframes floatSoft {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-8px); }
+    }
+
+    .pulse-cta { animation: pulseCta 1.2s ease-in-out infinite; }
+    @keyframes pulseCta {
+      0%, 100% { transform: scale(1); box-shadow: 0 6px 18px rgba(44, 174, 230, 0.25); }
+      50% { transform: scale(1.04); box-shadow: 0 10px 26px rgba(44, 174, 230, 0.42); }
+    }
+
+    .swipe-hint {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      margin-top: 4px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--water-deep);
+      opacity: 0;
+      transform: translateY(8px);
+      pointer-events: none;
+      transition: opacity 400ms var(--ease-soft), transform 400ms var(--ease-soft);
+    }
+    .swipe-hint.is-visible {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+      cursor: pointer;
+    }
+    .swipe-arrow {
+      width: 22px;
+      height: 22px;
+      animation: swipeUpBounce 1.4s ease-in-out infinite;
+    }
+    @keyframes swipeUpBounce {
+      0%, 100% { transform: translateY(2px); opacity: 0.75; }
+      50% { transform: translateY(-5px); opacity: 1; }
+    }
+
+    .bottle-anchor {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: transform 250ms var(--ease-bounce);
+    }
+    .bottle-anchor:active { transform: scale(0.92) rotate(-4deg); }
+    .bottle-anchor::after {
+      content: "点我一下";
+      position: absolute;
+      bottom: -14px;
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--water-deep);
+      background: rgba(255, 255, 255, 0.92);
+      padding: 1px 7px;
+      border-radius: 999px;
+      white-space: nowrap;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    }
+
+    /* ============ P1 启动页 ============ */
+    .page-p1 {
+      background: radial-gradient(circle at 50% 42%, #F6FCFF 0%, #BFE8F5 48%, #6FB7D9 100%);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 66px 18px 40px;
+      cursor: pointer;
+    }
+    .p1-bokeh-layer, .p1-boats-layer { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+    .p1-bokeh-dot {
+      position: absolute;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255,255,255,0.9), rgba(255,255,255,0));
+    }
+    .p1-boat { position: absolute; opacity: 0.5; animation: boatDrift 20s linear infinite; }
+    @keyframes boatDrift { from { transform: translateX(-20px); } to { transform: translateX(180px); } }
+
+    .p1-content {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      margin-top: 6px;
+    }
+    .brand-badge {
+      margin-bottom: 10px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.88);
+      box-shadow: 0 6px 18px rgba(0, 98, 196, 0.12);
+    }
+    .p1-hero-bottle { width: 165px; height: 225px; margin: 4px 0 10px; }
+    .p1-title {
+      margin: 0 0 10px;
+      font-size: clamp(19px, 5.2vw, 24px);
+      font-weight: 900;
+      color: var(--ink);
+      white-space: nowrap;
+      letter-spacing: 0.2px;
+    }
+    .p1-title .hl-eye { color: var(--brand-blue); font-style: italic; }
+    .p1-subtitle {
+      margin: 0;
+      font-size: 13px;
+      color: var(--ink-soft);
+      background: rgba(255, 255, 255, 0.65);
+      padding: 6px 16px;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+    .p1-cta-wrap { position: relative; z-index: 2; display: flex; justify-content: center; }
+    .p1-cta-pill {
+      padding: 12px 22px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.94);
+      color: var(--brand-blue);
+      font-size: 13.5px;
+      font-weight: 800;
+      border: 2px solid rgba(44, 174, 230, 0.35);
+      white-space: nowrap;
+    }
+
+    /* ============ P2 自测页 ============ */
+    .page-p2 { background: linear-gradient(180deg, #E8F7FD 0%, #CBEAF6 100%); }
+    .p2-ip-stage { display: flex; justify-content: center; align-items: center; height: 108px; }
+    .p2-quiz-card {
+      position: relative;
+      background: rgba(255, 255, 255, 0.94);
+      border: 2px solid var(--ink);
+      border-radius: 22px;
+      padding: 15px;
+      box-shadow: 0 12px 28px rgba(14, 135, 196, 0.14);
+      flex: 1;
+      max-height: 365px;
+      display: flex;
+      flex-direction: column;
+    }
+    .quiz-progress { display: flex; gap: 6px; margin-bottom: 10px; }
+    .quiz-step-dot { flex: 1; height: 6px; border-radius: 999px; background: #DCECF2; transition: background 300ms; }
+    .quiz-step-dot.is-done { background: var(--water); }
+    .quiz-step-dot.is-current { background: var(--coral); }
+    .quiz-q-title { margin: 0 0 10px; font-size: 15px; font-weight: 800; color: var(--ink); line-height: 1.4; }
+    .quiz-options { display: flex; flex-direction: column; gap: 8px; }
+    .quiz-opt-btn {
+      position: relative;
+      overflow: hidden;
+      width: 100%;
+      text-align: left;
+      padding: 10px 12px;
+      border-radius: 13px;
+      border: 1.5px solid #CFE3EC;
+      background: #F7FCFE;
+      color: var(--ink);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 240ms var(--ease-bounce), border-color 240ms, background 240ms;
+    }
+    .quiz-opt-btn.is-selected {
+      transform: scale(1.02);
+      border-color: var(--water);
+      background: #E0F5FC;
+      color: var(--water-deep);
+    }
+    .quiz-ripple {
+      position: absolute;
+      border-radius: 50%;
+      background: rgba(44, 174, 230, 0.32);
+      transform: scale(0);
+      animation: rippleSpread 520ms var(--ease-soft) forwards;
+      pointer-events: none;
+    }
+    @keyframes rippleSpread { to { transform: scale(4); opacity: 0; } }
+    .p2-bottle { align-self: flex-end; width: 64px; height: 90px; margin-top: 6px; }
+
+    /* ============ P3 场景共鸣（缩小上方屏幕画面 + 放大下方文字区 + 太阳云朵下移 + 下滑UI） ============ */
+    .page-p3 { background: var(--sea-dark); }
+    .p3-dark-stage {
+      position: absolute;
+      inset: 0;
+      padding: calc(max(14px, env(safe-area-inset-top)) + 44px) 18px 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 10px;
+      background: linear-gradient(180deg, #3D4C5A 0%, #4A5A6A 100%);
+      transition: opacity 700ms var(--ease-soft);
+    }
+
+    /* 缩小的屏幕操作区 */
+    .p3-screen-arena {
+      position: relative;
+      width: 86%;
+      height: 210px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .p3-comic-strip {
+      width: 100%;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+    .p3-comic-panel {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1.5px solid rgba(255, 255, 255, 0.22);
+      border-radius: 14px;
+      padding: 12px 4px;
+      text-align: center;
+      color: #DCE5EE;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .p3-peel-stack {
+      position: absolute;
+      inset: 0;
+      z-index: 12;
+      pointer-events: none;
+    }
+    .peel-layer {
+      position: absolute;
+      inset: 4px;
+      border-radius: 18px;
+      border: 2.5px solid var(--ink);
+      background: #2C3844;
+      color: #E5EEF5;
+      padding: 14px 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 14px 30px rgba(0, 0, 0, 0.35);
+      pointer-events: auto;
+      touch-action: none;
+      cursor: grab;
+      transform-origin: center bottom;
+    }
+    .peel-layer::before, .peel-layer::after {
+      content: "";
+      position: absolute;
+      width: 44px;
+      height: 15px;
+      background: rgba(255, 224, 150, 0.78);
+      border: 1px dashed rgba(20, 35, 54, 0.3);
+    }
+    .peel-layer::before { top: -7px; left: 16px; transform: rotate(-14deg); }
+    .peel-layer::after { top: -7px; right: 16px; transform: rotate(14deg); }
+    .peel-layer.is-jitter { animation: peelJitter 150ms linear; }
+    @keyframes peelJitter {
+      0%, 100% { transform: translate(0, 0) rotate(0); }
+      25% { transform: translate(-4px, -2px) rotate(-1.5deg); }
+      75% { transform: translate(4px, -3px) rotate(1.5deg); }
+    }
+    .peel-gesture-pill {
+      padding: 5px 14px;
+      border-radius: 999px;
+      background: rgba(255, 184, 107, 0.22);
+      border: 1px solid var(--coral);
+      color: var(--coral);
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    /* 占比更大的下方文字板块 */
+    .p3-text-panel {
+      flex: 1;
+      min-height: 210px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1.5px solid rgba(255, 255, 255, 0.16);
+      border-radius: 20px;
+      padding: 16px 14px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 14px;
+    }
+    .p3-poem {
+      text-align: center;
+      color: #FFFFFF;
+      font-size: 16px;
+      font-weight: 800;
+      line-height: 1.95;
+      letter-spacing: 0.5px;
+    }
+    .p3-science-note {
+      margin: 0;
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: rgba(0, 0, 0, 0.26);
+      color: #DCE7F0;
+      font-size: 12.5px;
+      line-height: 1.68;
+      text-align: center;
+    }
+
+    /* 撕开屏幕后的层层海浪交叠海景（太阳与云朵下移避让上方文字） */
+    .p3-sea-reveal {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, #F4FBFF 0%, #D3F2FC 45%, #8AD2EC 100%);
+      opacity: 0;
+      overflow: hidden;
+      pointer-events: none;
+      transition: opacity 900ms var(--ease-soft);
+    }
+    .p3-sea-reveal.is-revealed { opacity: 1; pointer-events: auto; }
+    .p3-waves-scene { position: absolute; inset: 0; pointer-events: none; }
+    .p3-wave-layer { position: absolute; left: -12%; width: 124%; bottom: 0; }
+    .p3-wave-1 { animation: waveSwayA 6.5s ease-in-out infinite; }
+    .p3-wave-2 { animation: waveSwayB 5.2s ease-in-out infinite; }
+    .p3-wave-3 { animation: waveSwayA 4.4s ease-in-out infinite reverse; }
+    .p3-wave-4 { animation: waveSwayB 3.8s ease-in-out infinite; }
+    @keyframes waveSwayA {
+      0%, 100% { transform: translateX(0) translateY(0); }
+      50% { transform: translateX(4%) translateY(-6px); }
+    }
+    @keyframes waveSwayB {
+      0%, 100% { transform: translateX(0) translateY(0); }
+      50% { transform: translateX(-4%) translateY(5px); }
+    }
+    .p3-reveal-copy-wrap {
+      position: relative;
+      z-index: 4;
+      margin-top: calc(max(14px, env(safe-area-inset-top)) + 56px);
+      padding: 0 20px;
+      text-align: center;
+    }
+    .p3-reveal-badge {
+      display: inline-block;
+      padding: 5px 14px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.9);
+      color: var(--brand-blue);
+      font-size: 12px;
+      font-weight: 800;
+      margin-bottom: 8px;
+      box-shadow: 0 4px 12px rgba(14, 135, 196, 0.12);
+    }
+    .p3-reveal-tip {
+      margin: 0;
+      font-size: clamp(17px, 4.6vw, 20px);
+      font-weight: 900;
+      color: var(--ink);
+      line-height: 1.5;
+    }
+
+    /* 出现大海后的底部下滑继续探索 UI */
+    .p3-sea-down-ui {
+      position: absolute;
+      bottom: calc(max(14px, env(safe-area-inset-bottom)) + 12px);
+      left: 50%;
+      transform: translateX(-50%) translateY(10px);
+      z-index: 16;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 9px 18px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.94);
+      border: 2px solid var(--ink);
+      color: var(--brand-blue);
+      font-size: 12.5px;
+      font-weight: 800;
+      white-space: nowrap;
+      box-shadow: 0 10px 24px rgba(14, 135, 196, 0.28);
+      opacity: 0;
+      pointer-events: none;
+      cursor: pointer;
+      transition: opacity 420ms var(--ease-soft), transform 420ms var(--ease-soft);
+    }
+    .p3-sea-down-ui.is-visible {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+      pointer-events: auto;
+    }
+    .p3-down-arrow {
+      display: inline-block;
+      animation: downBob 1.3s ease-in-out infinite;
+    }
+    @keyframes downBob {
+      0%, 100% { transform: translateY(-2px); }
+      50% { transform: translateY(3px); }
+    }
+
+    /* ============ P4 误区科普页 ============ */
+    .page-p4 { background: linear-gradient(180deg, var(--sea-light) 0%, #D9F2FA 100%); }
+    .p4-cards-list { display: flex; flex-direction: column; gap: 12px; margin: 8px 0; }
+    .myth-card {
+      position: relative;
+      overflow: hidden;
+      background: var(--white);
+      border: 2px solid var(--ink);
+      border-radius: 18px;
+      padding: 13px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      filter: grayscale(1) contrast(0.92);
+      opacity: 0.88;
+      transition: filter 600ms var(--ease-soft), transform 600ms var(--ease-bounce), opacity 600ms, box-shadow 600ms;
+    }
+    .myth-card:nth-child(1) { transform: rotate(-1.5deg); }
+    .myth-card:nth-child(2) { transform: rotate(1.4deg); }
+    .myth-card:nth-child(3) { transform: rotate(-1deg); }
+    .myth-card.is-unlocked {
+      filter: grayscale(0) saturate(1.15);
+      opacity: 1;
+      transform: rotate(0deg);
+      box-shadow: 0 10px 24px rgba(44, 174, 230, 0.22);
+      background: linear-gradient(135deg, #FFFFFF 0%, #E8F8FE 100%);
+    }
+    .myth-card.is-unlocked::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.7) 50%, transparent 70%);
+      animation: shimmerSweep 700ms var(--ease-soft) forwards;
+      pointer-events: none;
+    }
+    @keyframes shimmerSweep { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+    .myth-badge {
+      flex-shrink: 0;
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      background: #E2EEF3;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+    .myth-card.is-unlocked .myth-badge { background: rgba(255, 184, 107, 0.28); }
+    .myth-text-wrap { flex: 1; min-width: 0; }
+    .myth-label { font-size: 11px; font-weight: 800; color: var(--coral-deep); }
+    .myth-quote { margin: 2px 0 0; font-size: 13px; font-weight: 700; color: var(--ink); line-height: 1.35; }
+    .myth-status { font-size: 11px; font-weight: 700; color: var(--water-deep); white-space: nowrap; }
+    .p4-sea-footer { display: flex; justify-content: center; min-height: 76px; }
+    .p4-bottle { width: 62px; height: 84px; transition: opacity 500ms, transform 500ms var(--ease-bounce); }
+    .p4-bottle.is-hidden { opacity: 0; transform: translateY(20px) scale(0.8); pointer-events: none; }
+
+    /* ============ P5 拖拽水滴页 ============ */
+    .page-p5 {
+      background: linear-gradient(180deg, #FFE8CE 0%, #BFE8F5 46%, #88CBE6 100%);
+      transition: background 1s var(--ease-soft);
+    }
+    .page-p5.is-morning {
+      background: linear-gradient(180deg, #FFFDF5 0%, #E8F7FD 42%, #9CD9EF 100%);
+    }
+    .p5-dock-stage {
+      position: relative;
+      height: 195px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      margin: 4px 0;
+    }
+    .p5-dock-wood {
+      position: absolute;
+      bottom: 0;
+      width: 78%;
+      height: 34px;
+      border-radius: 12px;
+      background: repeating-linear-gradient(90deg, #C79A6B 0 28px, #B48454 28px 31px);
+      border: 2px solid var(--ink);
+      box-shadow: 0 8px 0 rgba(20, 35, 54, 0.2);
+    }
+    .p5-drops-zone { position: absolute; inset: 0; pointer-events: none; transition: opacity 400ms; }
+    .p5-bottle-reveal-wrap {
+      position: relative;
+      z-index: 8;
+      margin-bottom: 18px;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+    }
+    .p5-bottle-reveal-wrap.is-shown {
+      display: flex;
+      animation: bottlePopCenter 650ms var(--ease-bounce) forwards;
+    }
+    @keyframes bottlePopCenter {
+      0% { opacity: 0; transform: translateY(24px) scale(0.45); }
+      100% { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .p5-center-bottle { width: 96px; height: 134px; }
+
+    .drag-drop-item {
+      position: absolute;
+      width: 66px;
+      height: 78px;
+      pointer-events: auto;
+      touch-action: none;
+      cursor: grab;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      transition: transform 250ms var(--ease-bounce);
+    }
+    .drag-drop-item.is-dragging { cursor: grabbing; z-index: 30; transform: scale(1.14); }
+    .drag-drop-item.is-used { opacity: 0; pointer-events: none; transform: scale(0.3); }
+    .drop-tag {
+      margin-top: -6px;
+      padding: 2px 7px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.94);
+      font-size: 10px;
+      font-weight: 800;
+      color: var(--water-deep);
+      border: 1px solid var(--water);
+      white-space: nowrap;
+    }
+    .p5-slots-grid { display: flex; flex-direction: column; gap: 8px; }
+    .p5-slot {
+      position: relative;
+      min-height: 74px;
+      border-radius: 16px;
+      border: 2px dashed var(--water-deep);
+      background: rgba(255, 255, 255, 0.65);
+      padding: 9px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: border-color 300ms, background 300ms, box-shadow 300ms;
+      animation: slotBreath 2.2s ease-in-out infinite;
+    }
+    @keyframes slotBreath {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(44, 174, 230, 0.12); }
+      50% { box-shadow: 0 0 0 5px rgba(44, 174, 230, 0.22); }
+    }
+    .p5-slot.is-hover { background: rgba(255, 232, 198, 0.85); border-color: var(--coral-deep); }
+    .p5-slot.is-filled {
+      animation: none;
+      border-style: solid;
+      border-color: var(--coral-deep);
+      background: rgba(255, 255, 255, 0.96);
+      box-shadow: 0 8px 20px rgba(240, 146, 46, 0.18);
+      cursor: pointer;
+    }
+    .slot-empty-hint { font-size: 12.5px; font-weight: 700; color: var(--water-deep); white-space: nowrap; }
+    .slot-card-content { width: 100%; text-align: left; animation: slideUpIn 420ms var(--ease-soft); }
+    @keyframes slideUpIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .slot-card-title { display: flex; justify-content: space-between; font-size: 13px; font-weight: 800; color: var(--water-deep); margin-bottom: 3px; }
+    .slot-card-desc { margin: 0; font-size: 11.5px; line-height: 1.45; color: var(--ink); }
+
+    /* ============ P6 人群适配（中心移除眼睛，海露眼药水居中放大） ============ */
+    .page-p6 { background: linear-gradient(180deg, var(--sea-bright) 0%, #BFE8F5 100%); }
+    .p6-waves-bg { position: absolute; inset: 0; opacity: 0.45; pointer-events: none; }
+    .p6-ocean-map { position: relative; height: 276px; display: flex; align-items: center; justify-content: center; }
+    .p6-center-ship { position: relative; display: flex; align-items: center; justify-content: center; }
+    .p6-bottle { width: 106px; height: 150px; }
+    .persona-btn {
+      position: absolute;
+      width: 74px;
+      height: 74px;
+      border-radius: 50%;
+      border: 2px solid var(--ink);
+      background: rgba(255, 255, 255, 0.94);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 8px 18px rgba(14, 135, 196, 0.18);
+      transition: transform 280ms var(--ease-bounce), border-color 280ms, background 280ms;
+    }
+    .persona-btn:nth-child(1) { top: 6px; left: 10px; }
+    .persona-btn:nth-child(2) { top: 6px; right: 10px; }
+    .persona-btn:nth-child(3) { bottom: 6px; left: 10px; }
+    .persona-btn:nth-child(4) { bottom: 6px; right: 10px; }
+    .persona-btn.is-active {
+      transform: scale(1.1);
+      border-color: var(--coral-deep);
+      background: #FFF9EF;
+      box-shadow: 0 0 0 6px rgba(255, 184, 107, 0.35);
+    }
+    .persona-emoji { font-size: 21px; line-height: 1.1; }
+    .persona-name { font-size: 10px; font-weight: 800; color: var(--ink); margin-top: 2px; white-space: nowrap; }
+    .p6-bubble-card {
+      min-height: 80px;
+      background: rgba(255, 255, 255, 0.94);
+      border: 2px solid var(--ink);
+      border-radius: 18px;
+      padding: 12px 14px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    .p6-bubble-title { font-size: 14px; font-weight: 800; color: var(--water-deep); margin-bottom: 4px; }
+    .p6-bubble-text { font-size: 12.5px; line-height: 1.5; color: var(--ink); margin: 0; }
+
+    /* ============ P7 实用教程（卡片切换模式，无下方眼睛与眼药水） ============ */
+    .page-p7 { background: linear-gradient(180deg, var(--sea-bright) 0%, #D3F0FA 100%); }
+    .p7-progress-dots {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin: 8px 0 4px;
+    }
+    .p7-dot {
+      width: 28px;
+      height: 7px;
+      border-radius: 999px;
+      background: rgba(14, 135, 196, 0.2);
+      transition: background 300ms, width 300ms;
+    }
+    .p7-dot.is-done { background: var(--water); }
+    .p7-dot.is-current { width: 40px; background: var(--coral-deep); }
+
+    .p7-card-stage {
+      position: relative;
+      flex: 1;
+      max-height: 360px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 6px 0;
+    }
+    .p7-active-card {
+      width: 100%;
+      background: var(--white);
+      border: 2.5px solid var(--ink);
+      border-radius: 24px;
+      padding: 20px 18px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      box-shadow: 0 16px 34px rgba(14, 135, 196, 0.18), 0 8px 0 rgba(44, 174, 230, 0.22);
+      cursor: pointer;
+      animation: cardSwitchIn 380ms var(--ease-bounce);
+    }
+    @keyframes cardSwitchIn {
+      from { opacity: 0; transform: translateX(36px) scale(0.94); }
+      to { opacity: 1; transform: translateX(0) scale(1); }
+    }
+    .p7-card-badge {
+      padding: 4px 14px;
+      border-radius: 999px;
+      background: #E2F4FB;
+      color: var(--water-deep);
+      font-size: 12px;
+      font-weight: 800;
+      margin-bottom: 10px;
+    }
+    .p7-card-svg { width: 170px; height: 136px; margin: 6px 0 10px; }
+    .p7-card-title { margin: 0 0 8px; font-size: 18px; font-weight: 900; color: var(--ink); }
+    .p7-card-tip { margin: 0 0 14px; font-size: 12.5px; color: var(--ink-soft); line-height: 1.5; }
+    .p7-card-cta {
+      padding: 10px 22px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, var(--water), var(--water-deep));
+      color: var(--white);
+      font-size: 13px;
+      font-weight: 800;
+    }
+    .step-drop-anim { animation: dropFallAnim 1.4s ease-in infinite; }
+    @keyframes dropFallAnim {
+      0% { transform: translateY(-6px); opacity: 0; }
+      30% { opacity: 1; }
+      85% { transform: translateY(16px); opacity: 1; }
+      100% { transform: translateY(20px); opacity: 0; }
+    }
+
+    /* ============ P8 收尾页（新文案 + 眼药水联动眨眼发光） ============ */
+    .page-p8 { background: linear-gradient(180deg, #E8F7FD 0%, #BFE8F5 60%, #7BC4E2 100%); }
+    .p8-sunbeams, .p8-particles { position: absolute; inset: 0; pointer-events: none; }
+    .p8-sunbeams {
+      background: conic-gradient(from 155deg at 50% -10%, rgba(255,255,255,0.45) 0deg, transparent 22deg, rgba(255,255,255,0.3) 40deg, transparent 65deg);
+    }
+    .p8-particle {
+      position: absolute;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.85);
+      animation: riseParticle 3.2s linear infinite;
+    }
+    @keyframes riseParticle {
+      from { transform: translateY(20px) scale(0.7); opacity: 0; }
+      30% { opacity: 0.9; }
+      to { transform: translateY(-130px) scale(1.2); opacity: 0; }
+    }
+    .p8-inner { align-items: center; text-align: center; }
+    .p8-slogan-box { margin-top: 6px; }
+    .p8-slogan-line {
+      margin: 4px 0;
+      font-size: clamp(18px, 5vw, 22px);
+      font-weight: 900;
+      color: var(--ink);
+      white-space: nowrap;
+    }
+    .p8-slogan-line .hl-eye { color: var(--brand-blue); font-style: italic; }
+    .p8-hero-scene { position: relative; display: flex; align-items: center; justify-content: center; gap: 14px; margin: 6px 0; }
+    .p8-ip-cloud {
+      position: relative;
+      width: 132px;
+      height: 84px;
+      transition: filter 320ms var(--ease-soft), transform 200ms ease;
+    }
+    .p8-ip-cloud.is-glow-blink {
+      filter: drop-shadow(0 0 18px rgba(44, 174, 230, 0.95)) drop-shadow(0 0 28px rgba(255, 220, 130, 0.9));
+      animation: eyeGlowBlink 900ms ease-in-out;
+    }
+    @keyframes eyeGlowBlink {
+      0%   { transform: scaleY(1) scale(1); }
+      20%  { transform: scaleY(0.12) scale(1.06); }
+      45%  { transform: scaleY(1.06) scale(1.08); }
+      68%  { transform: scaleY(0.15) scale(1.06); }
+      100% { transform: scaleY(1) scale(1); }
+    }
+    .p8-eye-sparkle {
+      position: absolute;
+      top: -12px;
+      right: -8px;
+      font-size: 22px;
+      opacity: 0;
+      pointer-events: none;
+    }
+    .p8-ip-cloud.is-glow-blink .p8-eye-sparkle {
+      animation: sparklePop 900ms ease-out;
+    }
+    @keyframes sparklePop {
+      0% { opacity: 0; transform: scale(0.4) translateY(8px); }
+      40% { opacity: 1; transform: scale(1.25) translateY(-4px); }
+      100% { opacity: 0; transform: scale(1) translateY(-12px); }
+    }
+    .p8-bottle { width: 92px; height: 128px; }
+    .p8-brand-value {
+      background: rgba(255, 255, 255, 0.78);
+      border-radius: 16px;
+      padding: 10px 14px;
+      font-size: 11.5px;
+      line-height: 1.6;
+      color: var(--ink);
+    }
+    .p8-logos-row { display: flex; align-items: center; justify-content: center; gap: 12px; }
+    .p8-go-diy { width: 84%; font-size: 14.5px; }
+
+    /* ============ P9 DIY 明信片 ============ */
+    .page-p9 { background: linear-gradient(180deg, #E8F7FD 0%, #CBEAF6 100%); }
+    .p9-inner { padding-top: calc(max(12px, env(safe-area-inset-top)) + 40px); gap: 8px; }
+    .p9-title { font-size: 18px; margin-bottom: 2px; }
+    .p9-tip { margin: 0; font-size: 11px; color: var(--ink-soft); text-align: center; white-space: nowrap; }
+    .p9-canvas-shell { position: relative; width: min(100%, 296px); aspect-ratio: 1 / 1; margin: 0 auto; }
+    .p9-postcard {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      border-radius: 18px;
+      border: 3px solid var(--ink);
+      overflow: hidden;
+      background: linear-gradient(180deg, #E8F7FD 0%, #BFE8F5 62%, #6FB7D9 100%);
+      box-shadow: 0 14px 30px rgba(14, 135, 196, 0.22);
+      touch-action: none;
+    }
+    .postcard-bg-art { position: absolute; inset: 0; pointer-events: none; }
+    .postcard-fixed-slogan {
+      position: absolute;
+      top: 12px;
+      left: 8px;
+      right: 8px;
+      text-align: center;
+      font-size: 12.5px;
+      font-weight: 900;
+      color: var(--ink);
+      white-space: nowrap;
+      pointer-events: none;
+    }
+    .postcard-watermark {
+      position: absolute;
+      bottom: 6px;
+      right: 10px;
+      font-size: 10px;
+      font-weight: 700;
+      color: rgba(20, 35, 54, 0.22);
+      pointer-events: none;
+    }
+    .postcard-stickers-layer { position: absolute; inset: 0; }
+    .placed-sticker {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 78px;
+      height: 78px;
+      margin: -39px 0 0 -39px;
+      touch-action: none;
+      cursor: move;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: stickerPop 380ms var(--ease-bounce);
+    }
+    @keyframes stickerPop { from { opacity: 0; transform: scale(0.3); } to { opacity: 1; } }
+    .placed-sticker.is-selected { outline: 2px dashed var(--coral-deep); outline-offset: 4px; border-radius: 10px; }
+    .placed-sticker.is-removing { transition: transform 240ms var(--ease-soft), opacity 240ms; opacity: 0 !important; transform: scale(0.2) !important; }
+    .sticker-toolbar {
+      position: absolute;
+      top: -28px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: none;
+      gap: 4px;
+      background: var(--ink);
+      padding: 2px 6px;
+      border-radius: 999px;
+      z-index: 5;
+    }
+    .placed-sticker.is-selected .sticker-toolbar { display: flex; }
+    .sticker-tool-btn {
+      border: none;
+      background: transparent;
+      color: #FFFFFF;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      padding: 2px 4px;
+      white-space: nowrap;
+    }
+    .p9-flash-ripple {
+      position: absolute;
+      inset: 0;
+      border-radius: 18px;
+      background: radial-gradient(circle, rgba(255,255,255,0.95), rgba(44,174,230,0.4));
+      opacity: 0;
+      pointer-events: none;
+    }
+    .p9-flash-ripple.is-flashing { animation: flashCard 420ms var(--ease-soft); }
+    @keyframes flashCard {
+      0% { opacity: 0; transform: scale(0.85); }
+      50% { opacity: 0.9; transform: scale(1.03); }
+      100% { opacity: 0; transform: scale(1.1); }
+    }
+    .p9-drawer { background: rgba(255, 255, 255, 0.92); border: 2px solid var(--ink); border-radius: 16px; padding: 8px 10px; }
+    .p9-drawer-head { display: flex; justify-content: space-between; align-items: center; font-size: 11px; font-weight: 700; color: var(--ink-soft); }
+    .drawer-toggle-btn {
+      border: none;
+      background: #E2F4FB;
+      color: var(--water-deep);
+      border-radius: 999px;
+      padding: 2px 10px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .p9-sticker-tray { display: flex; gap: 8px; overflow-x: auto; padding: 8px 2px 2px; }
+    .p9-drawer.is-collapsed .p9-sticker-tray { display: none; }
+    .tray-sticker-btn {
+      flex: 0 0 auto;
+      width: 64px;
+      height: 60px;
+      border-radius: 12px;
+      border: 1.5px solid #D5E8F0;
+      background: #F8FDFF;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--ink);
+      cursor: pointer;
+    }
+    .tray-sticker-btn:active { transform: scale(0.92); }
+    .p9-actions { display: grid; grid-template-columns: 1fr 1.35fr; gap: 8px; }
+    .p9-actions button { padding: 10px 10px; font-size: 12.5px; }
+
+    /* 转场 / 画面正中央海露眼药水文字框 / 弹窗 */
+    .wave-transition-overlay { position: absolute; inset: 0; z-index: var(--z-wave); pointer-events: none; opacity: 0; }
+    .wave-transition-overlay svg { width: 100%; height: 100%; fill: var(--water); }
+
+    .ip-toast {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0.86);
+      z-index: var(--z-toast);
+      width: max-content;
+      max-width: 82%;
+      padding: 14px 20px;
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.97);
+      border: 2.5px solid var(--ink);
+      color: var(--ink);
+      font-size: 13.5px;
+      font-weight: 800;
+      line-height: 1.5;
+      text-align: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 240ms var(--ease-soft), transform 280ms var(--ease-bounce);
+      box-shadow: 0 18px 42px rgba(20, 35, 54, 0.28);
+    }
+    .ip-toast.is-visible {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+
+    .modal-backdrop {
+      position: absolute;
+      inset: 0;
+      z-index: var(--z-modal);
+      background: rgba(20, 35, 54, 0.56);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 280ms var(--ease-soft), visibility 280ms;
+    }
+    .modal-backdrop.is-open { opacity: 1; visibility: visible; }
+    .modal-card {
+      position: relative;
+      width: 100%;
+      max-width: 370px;
+      max-height: 82dvh;
+      overflow-y: auto;
+      background: var(--white);
+      border: 2.5px solid var(--ink);
+      border-radius: 24px;
+      padding: 22px 18px 18px;
+      transform: scale(0.92);
+      transition: transform 320ms var(--ease-soft);
+      box-shadow: 0 22px 48px rgba(0, 0, 0, 0.3);
+    }
+    .modal-backdrop.is-open .modal-card { transform: scale(1); }
+    .modal-close {
+      position: absolute;
+      top: 10px;
+      right: 12px;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      border: none;
+      background: #EDF5F8;
+      color: var(--ink);
+      font-size: 20px;
+      line-height: 1;
+      cursor: pointer;
+    }
+    .modal-preline { font-size: 13px; font-weight: 700; color: var(--water-deep); text-align: center; margin-bottom: 6px; }
+    .modal-title { margin: 0 0 10px; font-size: 17px; font-weight: 900; color: var(--ink); text-align: center; }
+    .level-coral { display: inline-block; color: var(--coral-deep); animation: bounceIn 450ms var(--ease-bounce); }
+    @keyframes bounceIn { from { transform: scale(0.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    .modal-body-text { font-size: 13px; line-height: 1.65; color: var(--ink); margin: 0 0 12px; }
+    .modal-science-box { padding: 10px 12px; border-radius: 14px; background: #EEF8FC; font-size: 12px; line-height: 1.55; color: var(--ink-soft); margin-bottom: 14px; }
+    .modal-btn-row { display: flex; gap: 10px; justify-content: center; }
+    .modal-btn-row button { flex: 1; }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 150ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <div id="app-stage" class="app-stage">
+    <header class="global-hud" id="global-hud">
+      <div class="hud-left">
+        <button class="back-prev-btn is-hidden" id="btn-prev-page" aria-label="返回上一页">← 上一页</button>
+        <div class="page-pill" id="page-pill">01 / 09</div>
+      </div>
+      <button class="audio-btn" id="audio-toggle" aria-label="轻柔和缓背景音乐开关">
+        <span class="audio-icon" id="audio-icon">🔇</span>
+        <span class="audio-label" id="audio-label">海风BGM</span>
+      </button>
+    </header>
+
+    <main id="pages-wrapper" class="pages-wrapper">
+      <!-- P1 -->
+      <section class="page page-p1 is-active" data-page="1" id="page-1">
+        <div class="p1-bokeh-layer" id="p1-bokeh"></div>
+        <div class="p1-boats-layer" id="p1-boats"></div>
+        <div class="p1-content">
+          <div class="brand-badge" id="p1-logo"></div>
+          <div class="p1-hero-bottle floating-soft" id="p1-hero-bottle"></div>
+          <h1 class="p1-title" id="p1-title"></h1>
+          <p class="p1-subtitle" id="p1-subtitle"></p>
+        </div>
+        <div class="p1-cta-wrap">
+          <div class="p1-cta-pill pulse-cta" id="p1-cta"></div>
+        </div>
+      </section>
+
+      <!-- P2 -->
+      <section class="page page-p2" data-page="2" id="page-2">
+        <div class="page-inner">
+          <div class="p2-header">
+            <h2 class="section-title" id="p2-title"></h2>
+            <p class="section-sub" id="p2-subtitle"></p>
+          </div>
+          <div class="p2-ip-stage" id="p2-ip-stage"></div>
+          <div class="p2-quiz-card" id="p2-quiz-card">
+            <div class="quiz-progress" id="quiz-progress"></div>
+            <div class="quiz-body" id="quiz-body"></div>
+          </div>
+          <div class="bottle-anchor p2-bottle" data-bottle-page="2"></div>
+        </div>
+      </section>
+
+      <!-- P3：缩小屏幕区 + 放大下方文字区 + 撕开后太阳云朵下移 + 下方下滑UI -->
+      <section class="page page-p3" data-page="3" id="page-3">
+        <div class="p3-sea-reveal" id="p3-sea-reveal">
+          <div class="p3-waves-scene" id="p3-waves-scene"></div>
+          <div class="p3-reveal-copy-wrap">
+            <span class="p3-reveal-badge">逃离加班屏幕成功</span>
+            <p class="p3-reveal-tip" id="p3-reveal-tip"></p>
+          </div>
+          <button class="p3-sea-down-ui" id="p3-sea-down-ui">
+            <span class="p3-down-arrow">↓</span>
+            <span>向下滑动 / 点击继续探索</span>
+          </button>
+        </div>
+        <div class="p3-dark-stage" id="p3-dark-stage">
+          <h2 class="section-title light-ink" id="p3-title"></h2>
+          <div class="p3-screen-arena">
+            <div class="p3-comic-strip" id="p3-comic-strip"></div>
+            <div class="p3-peel-stack" id="p3-peel-stack"></div>
+          </div>
+          <div class="p3-text-panel">
+            <div class="p3-poem" id="p3-poem"></div>
+            <p class="p3-science-note" id="p3-science-note"></p>
+          </div>
+        </div>
+      </section>
+
+      <!-- P4 -->
+      <section class="page page-p4" data-page="4" id="page-4">
+        <div class="page-inner">
+          <div class="p4-header">
+            <span class="tag-chip">护眼避坑指南</span>
+            <h2 class="section-title" id="p4-title"></h2>
+            <p class="section-sub" id="p4-hint"></p>
+          </div>
+          <div class="p4-cards-list" id="p4-cards-list"></div>
+          <div class="p4-sea-footer">
+            <div class="bottle-anchor p4-bottle is-hidden" id="p4-bottle" data-bottle-page="4"></div>
+          </div>
+          <div class="swipe-hint" id="p4-swipe-hint"></div>
+        </div>
+      </section>
+
+      <!-- P5 -->
+      <section class="page page-p5" data-page="5" id="page-5">
+        <div class="page-inner p5-inner">
+          <div class="p5-header">
+            <h2 class="section-title" id="p5-title"></h2>
+            <p class="section-sub" id="p5-sub"></p>
+          </div>
+          <div class="p5-dock-stage">
+            <div class="p5-dock-wood"></div>
+            <div class="p5-bottle-reveal-wrap" id="p5-bottle-reveal-wrap">
+              <div class="bottle-anchor p5-center-bottle" id="p5-center-bottle" data-bottle-page="5"></div>
+            </div>
+            <div class="p5-drops-zone" id="p5-drops-zone"></div>
+          </div>
+          <div class="p5-slots-grid" id="p5-slots-grid"></div>
+          <div class="swipe-hint" id="p5-swipe-hint"></div>
+        </div>
+      </section>
+
+      <!-- P6：中心移除眼睛，海露眼药水居中放大 -->
+      <section class="page page-p6" data-page="6" id="page-6">
+        <div class="p6-waves-bg" id="p6-waves-bg"></div>
+        <div class="page-inner">
+          <div class="p6-header">
+            <h2 class="section-title" id="p6-title"></h2>
+            <p class="section-sub" id="p6-sub"></p>
+          </div>
+          <div class="p6-ocean-map">
+            <div class="p6-center-ship">
+              <div class="bottle-anchor p6-bottle" data-bottle-page="6"></div>
+            </div>
+            <div class="p6-personas-ring" id="p6-personas-ring"></div>
+          </div>
+          <div class="p6-bubble-card" id="p6-bubble-card"></div>
+          <div class="swipe-hint is-visible" id="p6-swipe-hint"></div>
+        </div>
+      </section>
+
+      <!-- P7：四步逐张切换卡片，移除下方眼睛和眼药水 -->
+      <section class="page page-p7" data-page="7" id="page-7">
+        <div class="page-inner">
+          <div class="p7-header">
+            <span class="tag-chip">1分钟轻松指南</span>
+            <h2 class="section-title" id="p7-title"></h2>
+            <p class="section-sub" id="p7-sub"></p>
+            <div class="p7-progress-dots" id="p7-progress-dots"></div>
+          </div>
+          <div class="p7-card-stage" id="p7-card-stage"></div>
+          <div class="swipe-hint" id="p7-swipe-hint"></div>
+        </div>
+      </section>
+
+      <!-- P8：新文案 + 点击海露眼药水旁边的眼睛眨眼发光 -->
+      <section class="page page-p8" data-page="8" id="page-8">
+        <div class="p8-sunbeams"></div>
+        <div class="p8-particles" id="p8-particles"></div>
+        <div class="page-inner p8-inner">
+          <div class="p8-slogan-box" id="p8-slogan-box"></div>
+          <div class="p8-hero-scene">
+            <div class="p8-ip-cloud floating-soft" id="p8-ip-cloud">
+              <span class="p8-eye-sparkle">✨</span>
+              <div id="p8-eye-svg" style="width:100%;height:100%"></div>
+            </div>
+            <div class="bottle-anchor p8-bottle" id="p8-bottle" data-bottle-page="8"></div>
+          </div>
+          <div class="p8-brand-value" id="p8-brand-value"></div>
+          <div class="p8-logos-row" id="p8-logos-row"></div>
+          <button class="btn-coral p8-go-diy" id="p8-go-diy"></button>
+        </div>
+      </section>
+
+      <!-- P9 -->
+      <section class="page page-p9" data-page="9" id="page-9">
+        <div class="page-inner p9-inner">
+          <div class="p9-header">
+            <h2 class="section-title p9-title" id="p9-title"></h2>
+            <p class="p9-tip" id="p9-tip"></p>
+          </div>
+          <div class="p9-canvas-shell">
+            <div class="p9-postcard" id="p9-postcard">
+              <div class="postcard-bg-art" id="postcard-bg-art"></div>
+              <div class="postcard-fixed-slogan" id="postcard-fixed-slogan"></div>
+              <div class="postcard-stickers-layer" id="postcard-stickers-layer"></div>
+              <div class="postcard-watermark">海露® · 护眼出海计划</div>
+            </div>
+            <div class="p9-flash-ripple" id="p9-flash-ripple"></div>
+          </div>
+          <div class="p9-drawer" id="p9-drawer">
+            <div class="p9-drawer-head">
+              <span>🎨 点击贴纸添加（支持拖拽 / 双指缩放旋转）</span>
+              <button class="drawer-toggle-btn" id="p9-drawer-toggle">收起</button>
+            </div>
+            <div class="p9-sticker-tray" id="p9-sticker-tray"></div>
+          </div>
+          <div class="p9-actions">
+            <button class="btn-ghost" id="btn-reset-card">重置画布</button>
+            <button class="btn-coral" id="btn-export-card">生成并保存卡片</button>
+            <button class="btn-sea" id="btn-share-card">分享给好友</button>
+            <button class="btn-text" id="btn-back-home">返回首页</button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <div class="wave-transition-overlay" id="wave-overlay" aria-hidden="true">
+      <svg viewBox="0 0 100 100" preserveAspectRatio="none">
+        <path id="wave-path" d="M0,100 Q25,95 50,100 T100,100 L100,100 L0,100 Z"></path>
+      </svg>
+    </div>
+
+    <!-- 画面居中提示文字框 -->
+    <div class="ip-toast" id="ip-toast" role="status"></div>
+
+    <div class="modal-backdrop" id="modal-backdrop">
+      <div class="modal-card" id="modal-card">
+        <button class="modal-close" id="modal-close" aria-label="关闭弹窗">×</button>
+        <div class="modal-content" id="modal-content"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* ========= 1. 文案与数据配置 ========= */
+    window.HAILU_CONFIG = {
+      share: {
+        title: "一滴海露，eye上海风温柔｜给眼睛放个假",
+        desc: "测测你的眼睛多久没放假了？快来定制专属护眼出海明信片～",
+        postcardTitle: "我制作了一张护眼出海明信片，快来DIY你的！",
+        link: window.location.href.split("#")[0],
+        imgUrl: ""
+      },
+      bottleMessages: {
+        2: "💧 眨眨眼，先测测双眼累不累～",
+        4: "💧 选对搭子，出海更安心。",
+        5: "💧 带上海露，向蓝海出发 🌊",
+        6: "💧 无论哪一种生活，眼睛都值得被善待。",
+        8: "✨ 眼睛亮晶晶！随时带上海露，给眼睛放个轻松假"
+      },
+      p1: {
+        titleHtml: '一滴海露，<span class="hl-eye">eye</span>上海风温柔',
+        subtitle: "给眼睛放个假，别让双眼全年无休",
+        cta: "点击开启 · 你的护眼松弛出海计划"
+      },
+      p2: {
+        title: "你的眼睛多久没放假了？",
+        subtitle: "3道小问题，看看双眼的“海风急需指数”",
+        quizData: [
+          {
+            id: "q1", type: "single",
+            question: "Q1. 每天高频用眼（看手机/电脑）时长？",
+            options: [
+              { label: "少于4小时（佛系养生党）", score: 1 },
+              { label: "4~8小时（日常搬砖党）", score: 2 },
+              { label: "8~12小时（屏幕常驻民）", score: 3 },
+              { label: "12小时以上（眼睛全年无休）", score: 4 }
+            ]
+          },
+          {
+            id: "q2", type: "single",
+            question: "Q2. 近距离用眼时的状态更接近？",
+            options: [
+              { label: "定时休息，眨眼自然", score: 1 },
+              { label: "偶尔专注忘记休息", score: 2 },
+              { label: "经常连续盯屏，很少停下", score: 3 },
+              { label: "长时间高强度用眼后仍明显不适", score: 4 }
+            ]
+          },
+          {
+            id: "q3", type: "multi",
+            question: "Q3. 盯屏幕久了之后，眼睛的感觉是？（多选）",
+            options: [
+              { label: "干涩异物感" },
+              { label: "酸胀疲劳" },
+              { label: "视物模糊、对焦变慢" },
+              { label: "没有明显感觉" }
+            ]
+          }
+        ],
+        results: {
+          preline: "眼睛也期待一场出海度假",
+          low: { level: "低负荷", copy: "你的用眼习惯相对温和，继续保持规律休息和适度护眼。" },
+          mid: { level: "中负荷", copy: "长时间盯屏会让泪膜稳定性下降，眼睛更容易干涩、疲劳。建议增加主动休息，减少连续用眼。" },
+          high: { level: "高负荷", copy: "持续高强度用眼后，眼表和视觉疲劳都可能加重。建议优先调整用眼节奏，并关注眼部持续不适。" },
+          scienceFooter: "我们的双眼没有“关机键”，长期高频用眼会导致泪膜破裂、水分流失，引发干涩疲劳。护眼无需等不适，主动放松，就是最好的养护。"
+        }
+      },
+      p3: {
+        title: "所有人都在休息，只有眼睛在加班",
+        comics: [
+          { scene: "commute", label: "通勤刷手机" },
+          { scene: "office", label: "办公盯电脑" },
+          { scene: "bedtime", label: "睡前刷屏幕" }
+        ],
+        poemLines: ["身体可以躺平", "情绪可以放空", "唯有双眼，日复一日连轴运转"],
+        scienceNote: "年轻人90%的眼部问题，不是突发疾病，是长期过度透支。主动给眼睛片刻松弛，是当代人最该有的日常仪式感。",
+        peelLayers: [
+          { id: "study", tag: "第 1 层 · 习题/网课屏", headline: "《刷不完的资料与夜间网课》", hint: "向上滑，撕开这层屏幕！" },
+          { id: "work", tag: "第 2 层 · 办公电脑屏", headline: "《改到第 8 版的方案与表格》", hint: "继续上滑，掀开工作屏！" },
+          { id: "phone", tag: "第 3 层 · 睡前手机屏", headline: "《再刷5分钟就睡的短视频》", hint: "最后一层，上滑撕开屏幕！" }
+        ],
+        revealTip: "撕开屏幕，海风与层层蓝海就在眼前 🌊"
+      },
+      p4: {
+        title: "科学护眼｜别让错误习惯消耗双眼",
+        hint: "点击下方 3 张灰色卡片，点亮护眼真相",
+        myths: [
+          { id: "m1", emoji: "🫣", cardTitle: "眼睛不疼不干，就不需要护眼", popupTitle: "误区 01 · 别等干涩才想起它", popupBody: "眼疲劳是慢性消耗，不适已经是眼部透支的信号。日常主动保湿放松，才是正确护眼方式。" },
+          { id: "m2", emoji: "🫧", cardTitle: "戴隐形眼镜不能滴眼药水", popupTitle: "误区 02 · 戴镜党也能温柔保湿", popupBody: "普通含防腐剂滴眼液禁止戴镜使用。海露0.1%无防腐剂、配方温和，佩戴美瞳/隐形可直接滴用。" },
+          { id: "m3", emoji: "💧", cardTitle: "眼药水都有依赖性，不能常用", popupTitle: "误区 03 · 人工泪液≠药物依赖", popupBody: "海露为人工泪液成分，无药物添加、温和贴合人体天然泪液，获批可长期日常使用，孕妇、哺乳期人群也可安心使用。" }
+        ]
+      },
+      p5: {
+        title: "海露｜出海旅途的护眼补给搭子",
+        sub: "拖动飘浮水滴至下方对应卡槽，集齐召唤海露",
+        subDone: "海露补给已就位！点击海露收获出海寄语 ✨",
+        drops: [
+          { id: "d1", slotKey: "heritage", icon: "📖", label: "专业底蕴" },
+          { id: "d2", slotKey: "safety", icon: "🛡️", label: "安全核心" },
+          { id: "d3", slotKey: "gentle", icon: "💧", label: "温和适配" }
+        ],
+        slots: [
+          { key: "heritage", slotLabel: "【专业底蕴】拖入水滴解锁", title: "25年全球临床验证", desc: "德国URSAPHARM原研，畅销全球80余国，20年国内市场沉淀，眼科临床一线推荐人工泪液。", summary: "一句话总结：德国原研沉淀，眼科日常安心推荐。" },
+          { key: "safety", slotLabel: "【安全核心】拖入水滴解锁", title: "COMOD®专利无菌技术", desc: "独家真空瓶系统，药液单向流出、不接触空气、无回流，开封可使用3个月，全程无菌无污染。", summary: "一句话总结：单向真空锁鲜，开封 3 个月依然无菌。" },
+          { key: "gentle", slotLabel: "【温和适配】拖入水滴解锁", title: "0防腐剂·适配全场景", desc: "高相容高分子玻璃酸钠，模拟人体天然泪液，长效稳定泪膜、缓解视疲劳。", summary: "一句话总结：0 防腐剂仿生泪液，温和长效保湿。" }
+        ]
+      },
+      p6: {
+        title: "奔赴蓝海，谁需要这份眼部松弛守护",
+        sub: "点击海面上的 4 位小伙伴，看看海露怎么陪他们度假",
+        personas: [
+          { id: "highfreq", emoji: "📖", name: "高频用眼党", detail: "学生、上班族、设计师、教师，适配日常长期保湿，缓解屏幕干眼" },
+          { id: "lens", emoji: "👓", name: "戴镜人群", detail: "隐形/美瞳佩戴者，佩戴中可直接滴用，消除异物干涩感" },
+          { id: "sensitive", emoji: "🤰", name: "特殊敏感人群", detail: "孕妇、哺乳期女性，成分安全无负担，可安心使用" },
+          { id: "postop", emoji: "🫧", name: "术后修护人群", detail: "眼部术后温和保湿修护，适配临床护眼需求" }
+        ]
+      },
+      p7: {
+        title: "简单四步，带上海露，给眼睛放个轻松假",
+        sub: "点击卡片解锁下一步，一分钟轻松上手",
+        steps: [
+          { id: 1, text: "清洁双手，头部微仰", tip: "用流动清水洗净双手，头部轻轻后仰看向天空，做好滴眼准备", btn: "已洗净抬头，下一步 →" },
+          { id: 2, text: "拉开下眼睑，悬空滴入一滴海露", tip: "轻拉下眼睑，瓶嘴垂直悬空不接触睫毛与眼球，轻按滴入一滴", btn: "已滴入海露，下一步 →" },
+          { id: 3, text: "轻按内眼角，锁水护眼", tip: "闭眼休息片刻，用指腹轻按内眼角，帮助营养保湿成分均匀停留", btn: "已完成按压，下一步 →" },
+          { id: 4, text: "日常按需长效护眼", tip: "0防腐剂配方贴合天然泪液，早晚或用眼疲惫时随时按需轻护双眼", btn: "四步学会啦 · 进入下一站 ✨" }
+        ]
+      },
+      p8: {
+        slogansHtml: [
+          '一滴海露，<span class="hl-eye">eye</span>上海风温柔',
+          "给眼睛放个假"
+        ],
+        valueLines: ["瑞霖医药·深耕眼科三十年", "以全球专业资源，做年轻人日常温和、安全、专业的眼部守护"],
+        cta: "制作我的专属明信片"
+      },
+      p9: {
+        title: "海风明信片工坊",
+        tip: "DIY你的护眼出海纪念卡，送给正在用眼的朋友🌊",
+        fixedSlogan: "如果 eye，请出海 · 给眼睛放个假",
+        stickers: [
+          { id: "drop", name: "小水滴" },
+          { id: "shell", name: "贝壳" },
+          { id: "wave", name: "海浪" },
+          { id: "boat", name: "帆船" },
+          { id: "cloud", name: "云朵" },
+          { id: "tag_holiday", name: "眼睛要放假" },
+          { id: "tag_no_ot", name: "拒绝眼加班" }
+        ]
+      }
+    };
+
+    /* ========= 2. 图形库 ========= */
+    window.HAILU_SVG = {
+      hailuLogo: `
+        <svg width="186" height="36" viewBox="0 0 214 42" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <text x="6" y="31" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="29" font-weight="900" fill="#0062C4" letter-spacing="1">海露</text>
+          <text x="69" y="13" font-family="Arial,sans-serif" font-size="11" font-weight="700" fill="#0062C4">®</text>
+          <path d="M88 5 H206 V27 Q206 38 195 38 H88 Z" fill="#0062C4"/>
+          <text x="142" y="29" text-anchor="middle" font-family="Arial,'PingFang SC',sans-serif" font-size="22" font-weight="900" fill="#FFFFFF" letter-spacing="1.5">HYLO</text>
+          <text x="181" y="16" font-family="Arial,sans-serif" font-size="9" font-weight="700" fill="#FFFFFF">®</text>
+        </svg>
+      `,
+      ruilinLogo: `
+        <svg width="110" height="32" viewBox="0 0 116 34" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="1.5" y="1.5" width="113" height="31" rx="15.5" fill="rgba(255,255,255,0.9)" stroke="#142336" stroke-width="1.8"/>
+          <circle cx="18" cy="17" r="7" fill="#FFB86B" stroke="#142336" stroke-width="1.6"/>
+          <text x="31" y="21" font-size="12" font-weight="800" fill="#142336">瑞霖医药</text>
+        </svg>
+      `,
+      bottle(w = "100%", h = "100%") {
+        return `
+          <svg width="${w}" height="${h}" viewBox="0 0 140 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M62 10 H78 L84 52 H56 Z" fill="#2CAEE6" stroke="#142336" stroke-width="3.2" stroke-linejoin="round"/>
+            <path d="M73 11 H77 L82 51 H75 Z" fill="#0E87C4"/>
+            <path d="M42 114 L12 136 Q8 140 13 143 Q19 145 42 130 Z" fill="#FFFFFF" stroke="#142336" stroke-width="3" stroke-linejoin="round"/>
+            <path d="M98 114 L128 136 Q132 140 127 143 Q121 145 98 130 Z" fill="#FFFFFF" stroke="#142336" stroke-width="3" stroke-linejoin="round"/>
+            <rect x="41" y="51" width="58" height="96" rx="11" fill="#FFFFFF" stroke="#142336" stroke-width="3.2"/>
+            <path d="M91 54 C95 56 97 60 97 64 V136 C97 141 93 145 87 145 H49 C51 143 88 141 90 135 V54 Z" fill="#D8DCE4"/>
+            <rect x="41" y="51" width="58" height="96" rx="11" stroke="#142336" stroke-width="3.2"/>
+            <rect x="52" y="65" width="36" height="68" rx="6" fill="#2CAEE6"/>
+            <path d="M52 71 C52 67.7 54.7 65 58 65 H82 C85.3 65 88 67.7 88 71 V101 H52 V71 Z" fill="#A5D3E3"/>
+            <rect x="60" y="80" width="4.2" height="8" rx="2.1" fill="#142336"/>
+            <rect x="76" y="80" width="4.2" height="8" rx="2.1" fill="#142336"/>
+            <path d="M66 93 Q73 94.5 79 90" stroke="#142336" stroke-width="2.4" stroke-linecap="round" fill="none"/>
+            <g transform="translate(54 68) rotate(-38)">
+              <rect x="-11" y="-5" width="22" height="10" rx="5" fill="#4FD4F5" stroke="#142336" stroke-width="2"/>
+              <circle cx="0" cy="0" r="3" fill="#FFFFFF"/><circle cx="0" cy="0" r="1.4" fill="#0E87C4"/>
+            </g>
+            <path d="M46 147 H94 L91 170 Q70 175 49 170 Z" fill="#FFFFFF" stroke="#142336" stroke-width="3.2" stroke-linejoin="round"/>
+            <path d="M84 148 H92 L90 169 L81 171 Z" fill="#D8DCE4"/>
+            <path d="M46 147 H94 L91 170 Q70 175 49 170 Z" stroke="#142336" stroke-width="3.2" stroke-linejoin="round"/>
+            <path d="M55 171 L58 186 Q61 189 64 185 L66 172 Z" fill="#D8DCE4" stroke="#142336" stroke-width="2.8" stroke-linejoin="round"/>
+            <path d="M74 172 L76 185 Q79 189 82 186 L85 171 Z" fill="#D8DCE4" stroke="#142336" stroke-width="2.8" stroke-linejoin="round"/>
+          </svg>
+        `;
+      },
+      eyeIP(mood = "normal") {
+        const lidOverlay = mood === "tired"
+          ? `<path d="M26 66 C56 22 164 22 194 66 Q110 78 26 66 Z" fill="#DCE6EF" opacity="0.92"/>
+             <path d="M26 66 Q110 78 194 66" stroke="#5B6E7D" stroke-width="3" stroke-linecap="round" fill="none"/>`
+          : "";
+        return `
+          <svg viewBox="0 0 220 135" width="100%" height="100%" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 67 C44 10 176 10 208 67 C176 124 44 124 12 67 Z" fill="#FFFFFF" stroke="#D5E8F4" stroke-width="2"/>
+            <path d="M30 67 C56 24 164 24 190 67 C164 110 56 110 30 67 Z" fill="#EEF3F8"/>
+            <circle cx="110" cy="67" r="37" fill="#2DAFE3"/>
+            <circle cx="110" cy="67" r="21" fill="#0D4C66"/>
+            <circle cx="94" cy="49" r="8.5" fill="#CBE9F9"/>
+            ${lidOverlay}
+          </svg>
+        `;
+      },
+      // P3 层层海浪交叠海景（太阳 cy=245、云朵 y=215~260 均往下移动，不与上方文字重合）
+      layeredOceanScene() {
+        return `
+          <svg viewBox="0 0 360 640" width="100%" height="100%" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+            <!-- 下移后的太阳 -->
+            <circle cx="282" cy="245" r="50" fill="#FFB86B" opacity="0.25"/>
+            <circle cx="282" cy="245" r="31" fill="#FFB86B" opacity="0.88"/>
+            <!-- 下移后的轻柔云朵 -->
+            <path d="M40 256 C30 256 28 242 38 238 C41 226 58 224 66 232 C76 224 94 230 94 244 C104 246 102 256 92 256 Z" fill="#FFFFFF" opacity="0.9"/>
+            <path d="M150 226 C142 226 140 216 148 212 C150 202 164 202 170 208 C178 202 192 206 192 216 C198 218 196 226 188 226 Z" fill="#FFFFFF" opacity="0.78"/>
+          </svg>
+          <svg class="p3-wave-layer p3-wave-1" viewBox="0 0 420 260" height="44%" preserveAspectRatio="none">
+            <path d="M0 44 Q52 14 105 44 T210 44 T315 44 T420 44 V260 H0 Z" fill="#A5DDF2"/>
+          </svg>
+          <svg class="p3-wave-layer p3-wave-2" viewBox="0 0 420 220" height="36%" preserveAspectRatio="none">
+            <path d="M0 36 Q52 64 105 36 T210 36 T315 36 T420 36 V220 H0 Z" fill="#6EC6EA"/>
+          </svg>
+          <svg class="p3-wave-layer p3-wave-3" viewBox="0 0 420 175" height="28%" preserveAspectRatio="none">
+            <path d="M0 32 Q52 6 105 32 T210 32 T315 32 T420 32 V175 H0 Z" fill="#2CAEE6"/>
+          </svg>
+          <svg class="p3-wave-layer p3-wave-4" viewBox="0 0 420 120" height="20%" preserveAspectRatio="none">
+            <path d="M0 24 Q52 46 105 24 T210 24 T315 24 T420 24 V120 H0 Z" fill="#0E87C4"/>
+          </svg>
+          <svg style="position:absolute;left:50%;bottom:30%;transform:translateX(-50%);width:74px;height:66px" class="floating-soft" viewBox="0 0 70 70" fill="none">
+            <path d="M35 12 L52 40 H35 Z" fill="#FFB86B" stroke="#142336" stroke-width="2"/>
+            <path d="M33 18 L20 40 H33 Z" fill="#FFFFFF" stroke="#142336" stroke-width="2"/>
+            <path d="M14 44 H56 L49 56 H21 Z" fill="#0E87C4" stroke="#142336" stroke-width="2.2"/>
+          </svg>
+        `;
+      },
+      comicIcon(scene) {
+        if (scene === "commute") return `<svg viewBox="0 0 64 56" width="50" height="42" fill="none"><rect x="20" y="8" width="24" height="40" rx="4" fill="#6FB7D9" stroke="#DCE5EE" stroke-width="2"/><circle cx="32" cy="24" r="7" fill="#FFFFFF" stroke="#142336" stroke-width="1.6"/><circle cx="32" cy="24" r="3" fill="#142336"/></svg>`;
+        if (scene === "office") return `<svg viewBox="0 0 64 56" width="50" height="42" fill="none"><rect x="8" y="10" width="48" height="30" rx="4" fill="#8A94A0" stroke="#DCE5EE" stroke-width="2"/><path d="M26 40 L22 48 H42 L38 40" stroke="#DCE5EE" stroke-width="2"/><path d="M18 24 H46 M18 30 H36" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round"/></svg>`;
+        return `<svg viewBox="0 0 64 56" width="50" height="42" fill="none"><path d="M16 14 A12 12 0 1 0 32 30 A10 10 0 1 1 16 14 Z" fill="#FFB86B"/><rect x="34" y="18" width="16" height="26" rx="3" fill="#BFE8F5" stroke="#FFFFFF" stroke-width="1.8"/></svg>`;
+      },
+      waterDrop(icon, label) {
+        return `<svg viewBox="0 0 56 66" width="52" height="60" fill="none"><path d="M28 4 C28 4 8 28 8 42 C8 53 17 61 28 61 C39 61 48 53 48 42 C48 28 28 4 28 4Z" fill="#7FD3EE" stroke="#142336" stroke-width="2.2"/><text x="28" y="45" text-anchor="middle" font-size="18">${icon}</text></svg><span class="drop-tag">${label}</span>`;
+      },
+      // P7 重绘清晰直观的四步教程插画（重点重绘步骤 1 与步骤 4）
+      tutorialStep(stepId) {
+        if (stepId === 1) {
+          // 清洁双手 + 头部微仰：左侧水龙头清水洗手气泡 + 右侧仰头人物轮廓与向上箭头
+          return `<svg viewBox="0 0 180 130" width="100%" height="100%" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <!-- 左侧：水龙头与洗手 -->
+            <rect x="12" y="14" width="68" height="102" rx="14" fill="#E8F7FD" stroke="#2CAEE6" stroke-width="1.8"/>
+            <path d="M24 30 H44 Q52 30 52 38 V44 H42 V38 H24 Z" fill="#8FA4B5" stroke="#142336" stroke-width="2"/>
+            <path d="M47 46 V64" stroke="#2CAEE6" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="4 4"/>
+            <ellipse cx="38" cy="76" rx="14" ry="8" fill="#FFE0C2" stroke="#142336" stroke-width="2"/>
+            <ellipse cx="54" cy="80" rx="14" ry="8" fill="#FFD3AD" stroke="#142336" stroke-width="2"/>
+            <circle cx="32" cy="64" r="4" fill="#FFFFFF" stroke="#2CAEE6" stroke-width="1.5"/>
+            <circle cx="62" cy="68" r="3.5" fill="#FFFFFF" stroke="#2CAEE6" stroke-width="1.5"/>
+            <text x="46" y="106" text-anchor="middle" font-size="10.5" font-weight="800" fill="#0E87C4">洗净双手</text>
+
+            <!-- 右侧：头部微仰侧面示意 -->
+            <rect x="94" y="14" width="74" height="102" rx="14" fill="#FFF7EB" stroke="#FFB86B" stroke-width="1.8"/>
+            <!-- 仰面人物头颈（向右上方仰起） -->
+            <g transform="translate(130 64) rotate(-28)">
+              <path d="M-12 24 V10 C-18 6 -20 -12 -10 -18 C0 -24 16 -18 18 -4 L22 2 L17 6 C16 14 10 18 2 18 V24" fill="#FFE0C2" stroke="#142336" stroke-width="2.2" stroke-linejoin="round"/>
+              <!-- 头发 -->
+              <path d="M-14 6 C-22 -4 -18 -22 -2 -22 C8 -22 14 -16 14 -12 C4 -14 -4 -8 -6 4 Z" fill="#142336"/>
+              <!-- 眼睛朝上看 -->
+              <circle cx="9" cy="-4" r="2.6" fill="#142336"/>
+            </g>
+            <!-- 向上仰起指示弧箭头 -->
+            <path d="M142 36 Q156 36 154 22" stroke="#F0922E" stroke-width="2.6" stroke-linecap="round" fill="none"/>
+            <path d="M149 26 L154 20 L158 27" stroke="#F0922E" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+            <text x="131" y="106" text-anchor="middle" font-size="10.5" font-weight="800" fill="#F0922E">头部微仰</text>
+          </svg>`;
+        }
+        if (stepId === 2) {
+          return `<svg viewBox="0 0 180 130" width="100%" height="100%" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="20" y="10" width="140" height="110" rx="16" fill="#E8F7FD" stroke="#2CAEE6" stroke-width="1.8"/>
+            <rect x="78" y="16" width="24" height="28" rx="5" fill="#FFFFFF" stroke="#142336" stroke-width="2.4"/>
+            <path d="M84 44 L90 56 L96 44 Z" fill="#2CAEE6" stroke="#142336" stroke-width="2"/>
+            <path class="step-drop-anim" d="M90 58 C90 58 84 67 90 71 C96 67 90 58 90 58Z" fill="#2CAEE6" stroke="#0E87C4" stroke-width="1.5"/>
+            <path d="M44 92 Q90 68 136 92 Q90 112 44 92 Z" fill="#FFFFFF" stroke="#142336" stroke-width="2.6"/>
+            <circle cx="90" cy="91" r="11" fill="#2DAFE3"/>
+            <circle cx="90" cy="91" r="6" fill="#0D4C66"/>
+            <circle cx="86" cy="87" r="2.5" fill="#CBE9F9"/>
+            <!-- 拉开下眼睑手势 -->
+            <path d="M58 116 L72 103 Q77 100 79 105 L68 118" fill="#FFE0C2" stroke="#142336" stroke-width="2" stroke-linecap="round"/>
+          </svg>`;
+        }
+        if (stepId === 3) {
+          return `<svg viewBox="0 0 180 130" width="100%" height="100%" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="20" y="10" width="140" height="110" rx="16" fill="#E8F7FD" stroke="#2CAEE6" stroke-width="1.8"/>
+            <!-- 轻闭舒缓的眼睛 -->
+            <path d="M44 58 Q90 36 136 58 Q90 80 44 58 Z" fill="#FFFFFF" stroke="#142336" stroke-width="2.4"/>
+            <path d="M54 58 Q90 68 126 58" stroke="#142336" stroke-width="3" stroke-linecap="round"/>
+            <!-- 内眼角高光圈 -->
+            <circle cx="54" cy="58" r="12" fill="#FFB86B" opacity="0.28"/>
+            <circle cx="54" cy="58" r="11" stroke="#F0922E" stroke-width="2" stroke-dasharray="4 3"/>
+            <!-- 指腹轻按内眼角 -->
+            <path d="M26 112 L46 66 Q50 58 56 62 L40 114 Z" fill="#FFE0C2" stroke="#142336" stroke-width="2.2" stroke-linejoin="round"/>
+            <text x="116" y="104" text-anchor="middle" font-size="11" font-weight="800" fill="#0E87C4">轻按锁水</text>
+          </svg>`;
+        }
+        // 步骤 4：日常按需长效护眼（日历/早晚太阳月亮 + 海露瓶 + 水润亮眼）
+        return `<svg viewBox="0 0 180 130" width="100%" height="100%" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="14" y="12" width="152" height="106" rx="16" fill="#E8F7FD" stroke="#2CAEE6" stroke-width="1.8"/>
+          <!-- 左上角：日常太阳与月亮角标（代表全天候日常） -->
+          <circle cx="38" cy="36" r="10" fill="#FFB86B" stroke="#142336" stroke-width="1.8"/>
+          <path d="M62 28 A9 9 0 1 0 71 42 A7.5 7.5 0 1 1 62 28 Z" fill="#0E87C4" stroke="#142336" stroke-width="1.6"/>
+          <!-- 左侧：随身日历小卡片 -->
+          <rect x="26" y="54" width="52" height="48" rx="8" fill="#FFFFFF" stroke="#142336" stroke-width="2.2"/>
+          <rect x="26" y="54" width="52" height="14" rx="5" fill="#2CAEE6" stroke="#142336" stroke-width="2"/>
+          <text x="52" y="88" text-anchor="middle" font-size="11" font-weight="900" fill="#0E87C4">日常随护</text>
+          <!-- 右侧：水润亮晶晶的眼睛 + 守护光环 -->
+          <ellipse cx="126" cy="70" rx="34" ry="28" fill="#FFFFFF" stroke="#2CAEE6" stroke-width="2" stroke-dasharray="4 3"/>
+          <path d="M96 70 Q126 44 156 70 Q126 96 96 70 Z" fill="#FFFFFF" stroke="#142336" stroke-width="2.2"/>
+          <circle cx="126" cy="70" r="11" fill="#2DAFE3"/>
+          <circle cx="126" cy="70" r="6" fill="#0D4C66"/>
+          <circle cx="121" cy="65" r="3" fill="#CBE9F9"/>
+          <!-- 右上角星星闪光 -->
+          <path d="M150 28 L153 35 L160 38 L153 41 L150 48 L147 41 L140 38 L147 35 Z" fill="#FFB86B"/>
+        </svg>`;
+      },
+      sticker(id) {
+        const map = {
+          drop: `<svg viewBox="0 0 70 70" width="100%" height="100%" fill="none"><path d="M35 8 C35 8 15 34 15 47 C15 57 24 64 35 64 C46 64 55 57 55 47 C55 34 35 8 35 8Z" fill="#2CAEE6" stroke="#142336" stroke-width="2.5"/><circle cx="28" cy="46" r="3" fill="#142336"/><circle cx="42" cy="46" r="3" fill="#142336"/><path d="M31 52 Q35 56 39 52" stroke="#142336" stroke-width="2" stroke-linecap="round"/></svg>`,
+          shell: `<svg viewBox="0 0 70 70" width="100%" height="100%" fill="none"><path d="M12 46 C12 24 58 24 58 46 L48 56 H22 Z" fill="#FFB86B" stroke="#142336" stroke-width="2.5"/><path d="M35 28 V56 M24 32 L28 56 M46 32 L42 56" stroke="#142336" stroke-width="2"/></svg>`,
+          wave: `<svg viewBox="0 0 70 70" width="100%" height="100%" fill="none"><path d="M8 44 Q20 28 35 42 T62 38" stroke="#0E87C4" stroke-width="5" stroke-linecap="round"/><path d="M12 54 Q26 42 40 52 T60 50" stroke="#6FB7D9" stroke-width="4" stroke-linecap="round"/></svg>`,
+          boat: `<svg viewBox="0 0 70 70" width="100%" height="100%" fill="none"><path d="M35 12 L52 40 H35 Z" fill="#FFB86B" stroke="#142336" stroke-width="2"/><path d="M33 18 L20 40 H33 Z" fill="#FFFFFF" stroke="#142336" stroke-width="2"/><path d="M14 44 H56 L49 56 H21 Z" fill="#2CAEE6" stroke="#142336" stroke-width="2.2"/></svg>`,
+          cloud: `<svg viewBox="0 0 70 70" width="100%" height="100%" fill="none"><path d="M16 46 C10 46 8 36 16 32 C18 22 32 20 38 28 C46 22 58 28 56 38 C62 40 60 46 52 46 Z" fill="#FFFFFF" stroke="#142336" stroke-width="2.5"/></svg>`,
+          tag_holiday: `<svg viewBox="0 0 110 44" width="100%" height="100%" fill="none"><rect x="3" y="5" width="104" height="34" rx="17" fill="#FFB86B" stroke="#142336" stroke-width="2.5"/><text x="55" y="27" text-anchor="middle" font-size="13" font-weight="900" fill="#142336">眼睛要放假</text></svg>`,
+          tag_no_ot: `<svg viewBox="0 0 110 44" width="100%" height="100%" fill="none"><rect x="3" y="5" width="104" height="34" rx="17" fill="#2CAEE6" stroke="#142336" stroke-width="2.5"/><text x="55" y="27" text-anchor="middle" font-size="13" font-weight="900" fill="#FFFFFF">拒绝眼加班</text></svg>`
+        };
+        return map[id] || map.drop;
+      }
+    };
+
+    /* ========= 3. 轻柔和缓 BGM（柔和五声部电钢琴和弦 + 轻柔海浪呼吸） ========= */
+    window.HAILU_AUDIO = (function () {
+      let ctx = null, masterGain = null, waveNode = null, lfoNode = null, chordTimer = null;
+      let isPlaying = false, userMuted = false, chordIdx = 0;
+
+      // 治愈系慢速和弦进行（Cmaj9 -> Fmaj7 -> Am9 -> G6）
+      const chords = [
+        [261.63, 329.63, 392.00, 493.88, 587.33],
+        [174.61, 261.63, 329.63, 440.00, 523.25],
+        [220.00, 329.63, 392.00, 493.88, 587.33],
+        [196.00, 293.66, 329.63, 440.00, 493.88]
+      ];
+
+      function ensureCtx() {
+        if (!ctx) {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          if (!AudioCtx) return null;
+          ctx = new AudioCtx();
+        }
+        if (ctx.state === "suspended") ctx.resume().catch(() => {});
+        return ctx;
+      }
+
+      function playWarmPadChord(freqs) {
+        if (!ctx || !masterGain || !isPlaying) return;
+        const now = ctx.currentTime;
+        freqs.forEach((freq, idx) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          const filter = ctx.createBiquadFilter();
+          osc.type = idx === 0 ? "sine" : "triangle";
+          osc.frequency.setValueAtTime(freq, now);
+
+          filter.type = "lowpass";
+          filter.frequency.setValueAtTime(880, now);
+
+          // 柔和渐入渐出，营造轻盈海风感
+          const startDelay = idx * 0.14;
+          gain.gain.setValueAtTime(0.0001, now + startDelay);
+          gain.gain.linearRampToValueAtTime(idx === 0 ? 0.045 : 0.022, now + startDelay + 1.1);
+          gain.gain.exponentialRampToValueAtTime(0.0008, now + 4.4);
+
+          osc.connect(filter);
+          filter.connect(gain);
+          gain.connect(masterGain);
+
+          osc.start(now + startDelay);
+          osc.stop(now + 4.5);
+        });
+      }
+
+      function startBgm() {
+        const c = ensureCtx();
+        if (!c || isPlaying) return;
+
+        masterGain = c.createGain();
+        masterGain.gain.setValueAtTime(0.001, c.currentTime);
+        masterGain.gain.linearRampToValueAtTime(0.85, c.currentTime + 1.2);
+        masterGain.connect(c.destination);
+
+        // 底层轻柔潮汐海浪
+        const buffer = c.createBuffer(1, c.sampleRate * 4, c.sampleRate);
+        const data = buffer.getChannelData(0);
+        let lastOut = 0;
+        for (let i = 0; i < data.length; i++) {
+          const white = Math.random() * 2 - 1;
+          data[i] = (lastOut + 0.015 * white) / 1.015;
+          lastOut = data[i];
+        }
+        waveNode = c.createBufferSource();
+        waveNode.buffer = buffer;
+        waveNode.loop = true;
+
+        const waveFilter = c.createBiquadFilter();
+        waveFilter.type = "lowpass";
+        waveFilter.frequency.value = 260;
+
+        lfoNode = c.createOscillator();
+        const lfoGain = c.createGain();
+        lfoNode.frequency.value = 0.12;
+        lfoGain.gain.value = 120;
+        lfoNode.connect(lfoGain);
+        lfoGain.connect(waveFilter.frequency);
+
+        const waveGain = c.createGain();
+        waveGain.gain.value = 0.04;
+        waveNode.connect(waveFilter);
+        waveFilter.connect(waveGain);
+        waveGain.connect(masterGain);
+        waveNode.start();
+        lfoNode.start();
+
+        isPlaying = true;
+        playWarmPadChord(chords[chordIdx % chords.length]);
+        chordIdx++;
+        chordTimer = setInterval(() => {
+          playWarmPadChord(chords[chordIdx % chords.length]);
+          chordIdx++;
+        }, 3800);
+
+        updateUI();
+      }
+
+      function stopBgm() {
+        if (!isPlaying) return;
+        clearInterval(chordTimer);
+        try { waveNode && waveNode.stop(); lfoNode && lfoNode.stop(); } catch (_) {}
+        if (masterGain && ctx) {
+          try { masterGain.disconnect(); } catch (_) {}
+        }
+        isPlaying = false;
+        updateUI();
+      }
+
+      function autoStartOnFirstGesture() {
+        if (!userMuted && !isPlaying) startBgm();
+      }
+
+      function toggle() {
+        if (isPlaying) {
+          userMuted = true;
+          stopBgm();
+        } else {
+          userMuted = false;
+          startBgm();
+        }
+        return isPlaying;
+      }
+
+      function playDropSfx() {
+        const c = ensureCtx();
+        if (!c) return;
+        const osc = c.createOscillator(), gain = c.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(520, c.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(980, c.currentTime + 0.11);
+        gain.gain.setValueAtTime(0.08, c.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.14);
+        osc.connect(gain); gain.connect(c.destination);
+        osc.start(); osc.stop(c.currentTime + 0.15);
+      }
+
+      function updateUI() {
+        const btn = document.getElementById("audio-toggle"), icon = document.getElementById("audio-icon");
+        if (!btn || !icon) return;
+        btn.classList.toggle("is-playing", isPlaying);
+        icon.textContent = isPlaying ? "🎵" : "🔇";
+      }
+
+      return { toggle, autoStartOnFirstGesture, playDropSfx, isPlaying: () => isPlaying };
+    })();
+
+    /* ========= 4. P2 用眼自测 ========= */
+    window.HAILU_P2 = function (app) {
+      const cfg = window.HAILU_CONFIG.p2;
+      const quizBody = document.getElementById("quiz-body");
+      const progressEl = document.getElementById("quiz-progress");
+      const ipStage = document.getElementById("p2-ip-stage");
+
+      document.getElementById("p2-title").textContent = cfg.title;
+      document.getElementById("p2-subtitle").textContent = cfg.subtitle;
+      ipStage.innerHTML = `<div style="width:160px;height:98px">${window.HAILU_SVG.eyeIP("tired")}</div>`;
+
+      setInterval(() => {
+        if (app.getCurrentPage() !== 2) return;
+        ipStage.style.transition = "transform 260ms ease";
+        ipStage.style.transform = "scaleY(0.18)";
+        setTimeout(() => { ipStage.style.transform = "scaleY(1)"; }, 220);
+      }, 4000);
+
+      let stepIndex = 0;
+      const answers = { q1: 0, q2: 0, q3: [] };
+
+      function renderQuestion() {
+        const q = cfg.quizData[stepIndex];
+        progressEl.innerHTML = cfg.quizData
+          .map((_, idx) => `<div class="quiz-step-dot ${idx < stepIndex ? "is-done" : idx === stepIndex ? "is-current" : ""}"></div>`)
+          .join("");
+        const optsHtml = q.options
+          .map((opt, idx) => `<button class="quiz-opt-btn ${q.type === "multi" && answers.q3.includes(opt.label) ? "is-selected" : ""}" data-idx="${idx}">${opt.label}</button>`)
+          .join("");
+        const footerHtml = q.type === "multi" ? `<button class="btn-coral" id="quiz-submit-btn" style="width:100%;margin-top:10px;">查看结果</button>` : "";
+
+        quizBody.innerHTML = `<h3 class="quiz-q-title">${q.question}</h3><div class="quiz-options">${optsHtml}</div>${footerHtml}`;
+
+        quizBody.querySelectorAll(".quiz-opt-btn").forEach((btn) => {
+          btn.addEventListener("click", (e) => {
+            const rect = btn.getBoundingClientRect(), r = document.createElement("span");
+            r.className = "quiz-ripple";
+            const size = Math.max(rect.width, rect.height) * 0.4;
+            r.style.width = r.style.height = `${size}px`;
+            r.style.left = `${(e.clientX || rect.left + rect.width / 2) - rect.left - size / 2}px`;
+            r.style.top = `${(e.clientY || rect.top + rect.height / 2) - rect.top - size / 2}px`;
+            btn.appendChild(r); setTimeout(() => r.remove(), 550);
+            window.HAILU_AUDIO.playDropSfx();
+
+            const opt = q.options[Number(btn.dataset.idx)];
+            if (q.type === "single") {
+              quizBody.querySelectorAll(".quiz-opt-btn").forEach((b) => b.classList.remove("is-selected"));
+              btn.classList.add("is-selected");
+              answers[q.id] = opt.score;
+              setTimeout(() => { if (stepIndex < cfg.quizData.length - 1) { stepIndex++; renderQuestion(); } }, 340);
+            } else {
+              btn.classList.toggle("is-selected");
+              answers.q3 = answers.q3.includes(opt.label) ? answers.q3.filter((i) => i !== opt.label) : [...answers.q3, opt.label];
+            }
+          });
+        });
+
+        const submitBtn = document.getElementById("quiz-submit-btn");
+        if (submitBtn) submitBtn.addEventListener("click", showResult);
+      }
+
+      function showResult() {
+        const total = answers.q1 + answers.q2;
+        const res = total <= 3 ? cfg.results.low : total >= 7 ? cfg.results.high : cfg.results.mid;
+        app.setPageUnlocked(2, true);
+        app.trackEvent("quiz_complete", { score: total, level: res.level, symptoms: answers.q3 });
+        app.openModal(`
+          <div class="modal-preline">${cfg.results.preline}</div>
+          <h3 class="modal-title">你的用眼负荷等级：<span class="level-coral">${res.level}</span></h3>
+          <p class="modal-body-text">${res.copy}</p>
+          <div class="modal-science-box">${cfg.results.scienceFooter}</div>
+          <div class="modal-btn-row">
+            <button class="btn-ghost" id="btn-retest">重新测一次</button>
+            <button class="btn-coral" id="btn-go-p3">继续向下探索</button>
+          </div>
+        `);
+        document.getElementById("btn-retest").onclick = () => { app.closeModal(); resetQuiz(); };
+        document.getElementById("btn-go-p3").onclick = () => { app.closeModal(); app.goToPage(3); };
+      }
+
+      function resetQuiz() { stepIndex = 0; answers.q1 = 0; answers.q2 = 0; answers.q3 = []; renderQuestion(); }
+      renderQuestion();
+      return { reset: resetQuiz };
+    };
+
+    /* ========= 5. P3 撕开屏幕（已删除滚动文字彩蛋，缩小屏幕区，放大下方文字区，太阳云朵下移，海面下方补充下滑UI） ========= */
+    window.HAILU_P3 = function (app) {
+      const cfg = window.HAILU_CONFIG.p3;
+      const peelStack = document.getElementById("p3-peel-stack");
+      const darkStage = document.getElementById("p3-dark-stage");
+      const seaReveal = document.getElementById("p3-sea-reveal");
+      const seaDownUi = document.getElementById("p3-sea-down-ui");
+
+      document.getElementById("p3-title").textContent = cfg.title;
+      document.getElementById("p3-science-note").textContent = cfg.scienceNote;
+      document.getElementById("p3-reveal-tip").textContent = cfg.revealTip;
+      document.getElementById("p3-waves-scene").innerHTML = window.HAILU_SVG.layeredOceanScene();
+      document.getElementById("p3-comic-strip").innerHTML = cfg.comics.map((c) => `<div class="p3-comic-panel">${window.HAILU_SVG.comicIcon(c.scene)}<div>${c.label}</div></div>`).join("");
+      document.getElementById("p3-poem").innerHTML = cfg.poemLines.map((l) => `<div>${l}</div>`).join("");
+
+      seaDownUi.addEventListener("click", () => app.goToPage(4));
+
+      let peeledCount = 0;
+      const totalLayers = cfg.peelLayers.length;
+
+      function renderLayers() {
+        peelStack.innerHTML = "";
+        peeledCount = 0;
+        darkStage.style.opacity = "1";
+        seaReveal.classList.remove("is-revealed");
+        seaReveal.style.opacity = "0";
+        seaDownUi.classList.remove("is-visible");
+        app.setPageUnlocked(3, false);
+
+        [...cfg.peelLayers].reverse().forEach((layer, revIdx) => {
+          const logicalIndex = totalLayers - 1 - revIdx;
+          const el = document.createElement("div");
+          el.className = "peel-layer";
+          el.style.transform = `translateY(${logicalIndex * 5}px) scale(${1 - logicalIndex * 0.03})`;
+          el.innerHTML = `
+            <div style="font-size:11.5px;color:#9FB6C8;font-weight:700">${layer.tag}</div>
+            <div style="text-align:center">
+              <div style="font-size:28px;margin-bottom:4px">${logicalIndex === 0 ? "📱" : logicalIndex === 1 ? "💻" : "🌙"}</div>
+              <div style="font-size:14.5px;font-weight:800">${layer.headline}</div>
+            </div>
+            <div class="peel-gesture-pill">↑ ${layer.hint}</div>
+          `;
+          let startY = 0, startTime = 0, currentDy = 0, dragging = false;
+          el.addEventListener("pointerdown", (e) => {
+            dragging = true; startY = e.clientY; startTime = Date.now(); currentDy = 0;
+            el.setPointerCapture(e.pointerId); el.style.transition = "none";
+          });
+          el.addEventListener("pointermove", (e) => {
+            if (!dragging) return;
+            const dy = Math.min(0, e.clientY - startY); currentDy = dy;
+            const p = Math.min(1, Math.abs(dy) / 140);
+            el.style.transform = `translateY(${dy}px) rotate(${dy * 0.03}deg) scale(${1 - p * 0.08})`;
+            el.style.opacity = String(1 - p * 0.35);
+          });
+          const endDrag = () => {
+            if (!dragging) return;
+            dragging = false;
+            const velocity = Math.abs(currentDy) / Math.max(16, Date.now() - startTime);
+            if (Math.abs(currentDy) > 70 || velocity > 0.45) {
+              window.HAILU_AUDIO.playDropSfx();
+              el.classList.add("is-jitter");
+              setTimeout(() => {
+                el.style.transition = "transform 460ms var(--ease-soft), opacity 420ms";
+                el.style.transform = "translateY(-135%) rotate(-8deg) scale(0.76)";
+                el.style.opacity = "0"; el.style.pointerEvents = "none";
+                peeledCount++;
+                if (peeledCount >= totalLayers) {
+                  darkStage.style.opacity = "0";
+                  seaReveal.classList.add("is-revealed");
+                  seaReveal.style.opacity = "1";
+                  app.setPageUnlocked(3, true);
+                  seaDownUi.classList.add("is-visible");
+                }
+              }, 150);
+            } else {
+              el.style.transition = "transform 300ms var(--ease-bounce), opacity 300ms";
+              el.style.transform = "translateY(0) scale(1)"; el.style.opacity = "1";
+            }
+          };
+          el.addEventListener("pointerup", endDrag);
+          el.addEventListener("pointercancel", endDrag);
+          peelStack.appendChild(el);
+        });
+      }
+      renderLayers();
+      return { reset: renderLayers };
+    };
+
+    /* ========= 6. P5 拖拽水滴 ========= */
+    window.HAILU_P5 = function (app) {
+      const cfg = window.HAILU_CONFIG.p5;
+      const pageEl = document.getElementById("page-5");
+      const subEl = document.getElementById("p5-sub");
+      const dropsZone = document.getElementById("p5-drops-zone");
+      const slotsGrid = document.getElementById("p5-slots-grid");
+      const swipeHint = document.getElementById("p5-swipe-hint");
+      const bottleRevealWrap = document.getElementById("p5-bottle-reveal-wrap");
+      const centerBottle = document.getElementById("p5-center-bottle");
+
+      document.getElementById("p5-title").textContent = cfg.title;
+      centerBottle.addEventListener("click", (e) => {
+        e.stopPropagation();
+        window.HAILU_AUDIO.playDropSfx();
+        app.showToast(window.HAILU_CONFIG.bottleMessages[5]);
+      });
+
+      let filledState = { heritage: false, safety: false, gentle: false };
+      const pos = [{ left: "10%", top: "24px" }, { left: "41%", top: "12px" }, { left: "72%", top: "26px" }];
+
+      function findHitSlot(x, y) {
+        for (const slot of slotsGrid.querySelectorAll(".p5-slot:not(.is-filled)")) {
+          const r = slot.getBoundingClientRect();
+          if (x >= r.left - 14 && x <= r.right + 14 && y >= r.top - 14 && y <= r.bottom + 14) return slot;
+        }
+        return null;
+      }
+
+      function renderP5() {
+        filledState = { heritage: false, safety: false, gentle: false };
+        pageEl.classList.remove("is-morning");
+        subEl.textContent = cfg.sub;
+        dropsZone.style.opacity = "1";
+        dropsZone.innerHTML = "";
+        bottleRevealWrap.classList.remove("is-shown");
+        swipeHint.classList.remove("is-visible");
+        app.setPageUnlocked(5, false);
+
+        slotsGrid.innerHTML = cfg.slots.map((s) => `<div class="p5-slot" data-slot="${s.key}"><span class="slot-empty-hint">${s.slotLabel}</span></div>`).join("");
+
+        cfg.drops.forEach((drop, idx) => {
+          const el = document.createElement("div");
+          el.className = "drag-drop-item floating-soft";
+          el.style.left = pos[idx].left; el.style.top = pos[idx].top;
+          el.innerHTML = window.HAILU_SVG.waterDrop(drop.icon, drop.label);
+
+          let startX = 0, startY = 0, dragging = false;
+          el.addEventListener("pointerdown", (e) => {
+            if (el.classList.contains("is-used")) return;
+            dragging = true; startX = e.clientX; startY = e.clientY;
+            el.setPointerCapture(e.pointerId);
+            el.classList.remove("floating-soft"); el.classList.add("is-dragging");
+            el.style.transition = "none";
+          });
+          el.addEventListener("pointermove", (e) => {
+            if (!dragging) return;
+            el.style.transform = `translate(${e.clientX - startX}px, ${e.clientY - startY}px) scale(1.14)`;
+            slotsGrid.querySelectorAll(".p5-slot").forEach((s) => s.classList.remove("is-hover"));
+            const hit = findHitSlot(e.clientX, e.clientY);
+            if (hit) hit.classList.add("is-hover");
+          });
+          const onEnd = (e) => {
+            if (!dragging) return;
+            dragging = false; el.classList.remove("is-dragging");
+            slotsGrid.querySelectorAll(".p5-slot").forEach((s) => s.classList.remove("is-hover"));
+            const hit = findHitSlot(e.clientX, e.clientY);
+            if (hit && hit.dataset.slot === drop.slotKey) {
+              window.HAILU_AUDIO.playDropSfx();
+              el.classList.add("is-used"); filledState[drop.slotKey] = true;
+              const sc = cfg.slots.find((s) => s.key === drop.slotKey);
+              let flipped = false;
+              hit.classList.add("is-filled");
+              const renderFace = () => {
+                hit.innerHTML = flipped
+                  ? `<div class="slot-card-content"><div class="slot-card-title"><span>✨ ${sc.title}</span><span style="font-size:10px;color:#F0922E">点击翻回</span></div><p class="slot-card-desc" style="font-weight:700;color:#0E87C4">${sc.summary}</p></div>`
+                  : `<div class="slot-card-content"><div class="slot-card-title"><span>${drop.icon} ${sc.title}</span><span style="font-size:10px;color:#8A94A0">点击翻面</span></div><p class="slot-card-desc">${sc.desc}</p></div>`;
+              };
+              renderFace();
+              hit.addEventListener("click", () => { flipped = !flipped; renderFace(); });
+
+              if (Object.values(filledState).every(Boolean)) {
+                setTimeout(() => {
+                  pageEl.classList.add("is-morning");
+                  dropsZone.style.opacity = "0";
+                  subEl.textContent = cfg.subDone;
+                  bottleRevealWrap.classList.add("is-shown");
+                  app.setPageUnlocked(5, true);
+                  swipeHint.classList.add("is-visible");
+                }, 350);
+              }
+            } else {
+              if (hit) app.showToast(`这颗「${drop.label}」请拖到对应的【${drop.label}】卡槽哦～`);
+              el.style.transition = "transform 380ms var(--ease-bounce)";
+              el.style.transform = "translate(0, 0) scale(1)";
+              setTimeout(() => el.classList.add("floating-soft"), 380);
+            }
+          };
+          el.addEventListener("pointerup", onEnd);
+          el.addEventListener("pointercancel", onEnd);
+          dropsZone.appendChild(el);
+        });
+      }
+      renderP5();
+      return { reset: renderP5 };
+    };
+
+    /* ========= 7. P7 卡片逐级切换教程（无下方眼睛和眼药水） ========= */
+    window.HAILU_P7 = function (app) {
+      const cfg = window.HAILU_CONFIG.p7;
+      const dotsEl = document.getElementById("p7-progress-dots");
+      const stageEl = document.getElementById("p7-card-stage");
+      const swipeHint = document.getElementById("p7-swipe-hint");
+
+      document.getElementById("p7-title").textContent = cfg.title;
+      document.getElementById("p7-sub").textContent = cfg.sub;
+
+      let currentStep = 0;
+
+      function renderStep() {
+        const s = cfg.steps[currentStep];
+        dotsEl.innerHTML = cfg.steps
+          .map((_, idx) => `<div class="p7-dot ${idx < currentStep ? "is-done" : idx === currentStep ? "is-current" : ""}"></div>`)
+          .join("");
+
+        stageEl.innerHTML = `
+          <div class="p7-active-card" id="p7-card-trigger">
+            <span class="p7-card-badge">STEP 0${s.id} / 04</span>
+            <div class="p7-card-svg">${window.HAILU_SVG.tutorialStep(s.id)}</div>
+            <h3 class="p7-card-title">${s.text}</h3>
+            <p class="p7-card-tip">${s.tip}</p>
+            <div class="p7-card-cta">${s.btn}</div>
+          </div>
+        `;
+
+        if (currentStep === cfg.steps.length - 1) {
+          app.setPageUnlocked(7, true);
+          swipeHint.classList.add("is-visible");
+        } else {
+          app.setPageUnlocked(7, false);
+          swipeHint.classList.remove("is-visible");
+        }
+
+        document.getElementById("p7-card-trigger").addEventListener("click", () => {
+          window.HAILU_AUDIO.playDropSfx();
+          if (currentStep < cfg.steps.length - 1) {
+            currentStep++;
+            renderStep();
+          } else {
+            app.goToPage(8);
+          }
+        });
+      }
+
+      function reset() {
+        currentStep = 0;
+        renderStep();
+      }
+
+      renderStep();
+      return { reset };
+    };
+
+    /* ========= 8. P9 DIY 明信片 ========= */
+    window.HAILU_P9 = function (app) {
+      const cfg = window.HAILU_CONFIG.p9;
+      const postcardEl = document.getElementById("p9-postcard");
+      const stickersLayer = document.getElementById("postcard-stickers-layer");
+      const trayEl = document.getElementById("p9-sticker-tray");
+      const drawerEl = document.getElementById("p9-drawer");
+      const flashEl = document.getElementById("p9-flash-ripple");
+
+      document.getElementById("p9-title").textContent = cfg.title;
+      document.getElementById("p9-tip").textContent = cfg.tip;
+      document.getElementById("postcard-fixed-slogan").textContent = cfg.fixedSlogan;
+      document.getElementById("postcard-bg-art").innerHTML = `
+        <svg viewBox="0 0 360 360" width="100%" height="100%" preserveAspectRatio="none">
+          <circle cx="300" cy="64" r="28" fill="#FFB86B" opacity="0.65"/>
+          <path d="M0 240 Q90 215 180 240 T360 236 V360 H0 Z" fill="#2CAEE6" opacity="0.6"/>
+          <path d="M0 278 Q90 256 180 280 T360 275 V360 H0 Z" fill="#0E87C4" opacity="0.55"/>
+        </svg>
+        <div style="position:absolute;left:50%;bottom:24px;transform:translateX(-50%);width:105px;height:148px">${window.HAILU_SVG.bottle()}</div>
+      `;
+
+      trayEl.innerHTML = cfg.stickers.map((st) => `<button class="tray-sticker-btn" data-sticker-id="${st.id}"><div style="width:34px;height:34px">${window.HAILU_SVG.sticker(st.id)}</div><span>${st.name}</span></button>`).join("");
+
+      let zCounter = 10;
+      const clearSelection = () => stickersLayer.querySelectorAll(".placed-sticker").forEach((s) => s.classList.remove("is-selected"));
+      const applyTransform = (el) => { const s = el._state; el.style.transform = `translate(${s.x}px, ${s.y}px) rotate(${s.rot}deg) scale(${s.scale})`; };
+
+      trayEl.querySelectorAll(".tray-sticker-btn").forEach((btn) => btn.addEventListener("click", () => addSticker(btn.dataset.stickerId)));
+      document.getElementById("p9-drawer-toggle").addEventListener("click", (e) => {
+        e.target.textContent = drawerEl.classList.toggle("is-collapsed") ? "展开贴纸" : "收起";
+      });
+      postcardEl.addEventListener("pointerdown", (e) => { if (e.target === postcardEl || e.target === stickersLayer) clearSelection(); });
+
+      function addSticker(id) {
+        window.HAILU_AUDIO.playDropSfx();
+        clearSelection();
+        const el = document.createElement("div");
+        el.className = "placed-sticker is-selected";
+        if (id.startsWith("tag_")) { el.style.width = "108px"; el.style.height = "46px"; el.style.margin = "-23px 0 0 -54px"; }
+        el._state = { x: (Math.random() - 0.5) * 40, y: (Math.random() - 0.5) * 30 - 30, scale: 1, rot: 0 };
+        el.style.zIndex = String(++zCounter);
+        el.innerHTML = `
+          <div class="sticker-toolbar">
+            <button class="sticker-tool-btn" data-act="zoom-in">＋</button>
+            <button class="sticker-tool-btn" data-act="zoom-out">－</button>
+            <button class="sticker-tool-btn" data-act="rotate">↻</button>
+            <button class="sticker-tool-btn" data-act="top">置顶</button>
+            <button class="sticker-tool-btn" data-act="del" style="color:#FFB86B">删除</button>
+          </div>
+          <div class="sticker-graphic" style="width:100%;height:100%;pointer-events:none">${window.HAILU_SVG.sticker(id)}</div>
+        `;
+        applyTransform(el);
+
+        const pointers = new Map();
+        let baseState = null, startDist = 0, startAngle = 0;
+        el.querySelector(".sticker-toolbar").addEventListener("pointerdown", (e) => e.stopPropagation());
+        el.querySelector(".sticker-toolbar").addEventListener("click", (e) => {
+          const act = e.target.dataset.act;
+          if (act === "top") el.style.zIndex = String(++zCounter);
+          else if (act === "zoom-in") { el._state.scale = Math.min(2.2, el._state.scale + 0.15); applyTransform(el); }
+          else if (act === "zoom-out") { el._state.scale = Math.max(0.45, el._state.scale - 0.15); applyTransform(el); }
+          else if (act === "rotate") { el._state.rot += 20; applyTransform(el); }
+          else if (act === "del") { el.classList.add("is-removing"); setTimeout(() => el.remove(), 250); }
+        });
+
+        el.addEventListener("pointerdown", (e) => {
+          e.stopPropagation(); clearSelection(); el.classList.add("is-selected"); el.setPointerCapture(e.pointerId);
+          pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+          baseState = { ...el._state, startX: e.clientX, startY: e.clientY };
+          if (pointers.size === 2) {
+            const pts = [...pointers.values()];
+            startDist = Math.hypot(pts[1].x - pts[0].x, pts[1].y - pts[0].y);
+            startAngle = Math.atan2(pts[1].y - pts[0].y, pts[1].x - pts[0].x) * (180 / Math.PI);
+          }
+        });
+        el.addEventListener("pointermove", (e) => {
+          if (!pointers.has(e.pointerId)) return;
+          pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+          if (pointers.size === 1) {
+            el._state.x = baseState.x + (e.clientX - baseState.startX);
+            el._state.y = baseState.y + (e.clientY - baseState.startY);
+          } else if (pointers.size === 2) {
+            const pts = [...pointers.values()];
+            const dist = Math.hypot(pts[1].x - pts[0].x, pts[1].y - pts[0].y);
+            const angle = Math.atan2(pts[1].y - pts[0].y, pts[1].x - pts[0].x) * (180 / Math.PI);
+            if (startDist > 0) el._state.scale = Math.min(2.4, Math.max(0.4, baseState.scale * (dist / startDist)));
+            el._state.rot = baseState.rot + (angle - startAngle);
+          }
+          applyTransform(el);
+        });
+        const release = (e) => {
+          pointers.delete(e.pointerId);
+          if (pointers.size === 1) { const r = [...pointers.values()][0]; baseState = { ...el._state, startX: r.x, startY: r.y }; }
+        };
+        el.addEventListener("pointerup", release); el.addEventListener("pointercancel", release);
+        stickersLayer.appendChild(el);
+      }
+
+      document.getElementById("btn-reset-card").addEventListener("click", () => {
+        app.openConfirm("确定要清空当前贴纸，恢复初始明信片模板吗？", () => { stickersLayer.innerHTML = ""; app.showToast("画布已重置～"); });
+      });
+
+      document.getElementById("btn-export-card").addEventListener("click", () => {
+        clearSelection();
+        flashEl.classList.remove("is-flashing"); void flashEl.offsetWidth; flashEl.classList.add("is-flashing");
+        setTimeout(async () => {
+          const dataUrl = await renderPostcardTo1080();
+          app.openModal(`
+            <h3 class="modal-title">✨ 专属护眼明信片已生成</h3>
+            <img src="${dataUrl}" alt="护眼出海明信片" style="width:100%;border-radius:14px;border:2px solid #142336;display:block;margin-bottom:10px" />
+            <p class="modal-body-text" style="text-align:center;font-size:12px;color:#5B6E7D">微信内可长按上方图片保存相册，或点击下方按钮下载 PNG</p>
+            <div class="modal-btn-row"><a class="btn-coral" href="${dataUrl}" download="hailu-eye-vacation.png" style="text-align:center;text-decoration:none;display:block;width:100%">保存高清卡片 (1080×1080)</a></div>
+          `);
+        }, 400);
+      });
+
+      document.getElementById("btn-share-card").addEventListener("click", () => {
+        app.configureWeChatShare(window.HAILU_CONFIG.share.postcardTitle);
+        app.openModal(`
+          <h3 class="modal-title">🌊 分享给正在用眼的朋友</h3>
+          <p class="modal-body-text" style="text-align:center"><strong>分享标题：</strong><br/>「${window.HAILU_CONFIG.share.postcardTitle}」<br/><br/>请点击微信右上角 <strong>···</strong> 发送给好友或分享到朋友圈，提醒 TA 给眼睛放个假！</p>
+          <div class="modal-btn-row"><button class="btn-sea" onclick="window.HAILU_APP.closeModal()">我知道了</button></div>
+        `);
+      });
+
+      // 返回首页时全量重置所有页面数据，允许重新来一次
+      document.getElementById("btn-back-home").addEventListener("click", () => {
+        app.openConfirm("返回首页将重置本次互动记录，重新开启护眼出海之旅，确定吗？", () => {
+          app.resetAllPages();
+          app.goToPage(1);
+        });
+      });
+
+      function svgStringToImage(svgMarkup) {
+        return new Promise((resolve) => {
+          const clean = svgMarkup.includes("xmlns=") ? svgMarkup : svgMarkup.replace("<svg", '<svg xmlns="http://www.w3.org/2000/svg"');
+          const url = URL.createObjectURL(new Blob([clean], { type: "image/svg+xml;charset=utf-8" }));
+          const img = new Image();
+          img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+          img.onerror = () => resolve(null);
+          img.src = url;
+        });
+      }
+
+      async function renderPostcardTo1080() {
+        const size = 1080, canvas = document.createElement("canvas");
+        canvas.width = size; canvas.height = size;
+        const ctx = canvas.getContext("2d");
+        const grad = ctx.createLinearGradient(0, 0, 0, size);
+        grad.addColorStop(0, "#E8F7FD"); grad.addColorStop(0.62, "#BFE8F5"); grad.addColorStop(1, "#6FB7D9");
+        ctx.fillStyle = grad; ctx.fillRect(0, 0, size, size);
+
+        const bgImg = await svgStringToImage(`<svg viewBox="0 0 360 360" width="1080" height="1080"><circle cx="300" cy="64" r="28" fill="#FFB86B" opacity="0.65"/><path d="M0 240 Q90 215 180 240 T360 236 V360 H0 Z" fill="#2CAEE6" opacity="0.6"/><path d="M0 278 Q90 256 180 280 T360 275 V360 H0 Z" fill="#0E87C4" opacity="0.55"/></svg>`);
+        if (bgImg) ctx.drawImage(bgImg, 0, 0, size, size);
+
+        const bottleImg = await svgStringToImage(window.HAILU_SVG.bottle("360", "510"));
+        if (bottleImg) ctx.drawImage(bottleImg, (size - 340) / 2, 500, 340, 480);
+
+        ctx.fillStyle = "#142336"; ctx.font = "900 40px 'PingFang SC', sans-serif"; ctx.textAlign = "center";
+        ctx.fillText(cfg.fixedSlogan, size / 2, 74);
+
+        const scaleRatio = size / postcardEl.clientWidth;
+        const placed = [...stickersLayer.querySelectorAll(".placed-sticker")].sort((a, b) => Number(a.style.zIndex || 0) - Number(b.style.zIndex || 0));
+        for (const el of placed) {
+          const s = el._state, stImg = await svgStringToImage(el.querySelector(".sticker-graphic").innerHTML);
+          if (!stImg) continue;
+          const w = el.offsetWidth * scaleRatio, h = el.offsetHeight * scaleRatio;
+          ctx.save(); ctx.translate(size / 2 + s.x * scaleRatio, size / 2 + s.y * scaleRatio);
+          ctx.rotate((s.rot * Math.PI) / 180); ctx.scale(s.scale, s.scale);
+          ctx.drawImage(stImg, -w / 2, -h / 2, w, h); ctx.restore();
+        }
+        ctx.save(); ctx.globalAlpha = 0.15; ctx.fillStyle = "#142336"; ctx.font = "700 28px 'PingFang SC', sans-serif"; ctx.textAlign = "right";
+        ctx.fillText("海露® 0.1% · 护眼出海计划", size - 36, size - 28); ctx.restore();
+        return canvas.toDataURL("image/png");
+      }
+
+      function reset() {
+        stickersLayer.innerHTML = "";
+        drawerEl.classList.remove("is-collapsed");
+        document.getElementById("p9-drawer-toggle").textContent = "收起";
+      }
+      return { reset };
+    };
+
+    /* ========= 9. 主控路由与各页初始化 ========= */
+    window.addEventListener("DOMContentLoaded", () => {
+      const cfg = window.HAILU_CONFIG, svg = window.HAILU_SVG;
+      const pages = [...document.querySelectorAll(".page")];
+      const pagePill = document.getElementById("page-pill");
+      const prevBtn = document.getElementById("btn-prev-page");
+      const waveOverlay = document.getElementById("wave-overlay");
+      const wavePath = document.getElementById("wave-path");
+      const toastEl = document.getElementById("ip-toast");
+      const modalBackdrop = document.getElementById("modal-backdrop");
+      const modalContent = document.getElementById("modal-content");
+
+      let currentPage = 1, isTransitioning = false, toastTimer = null;
+      let unlockedPages = { 1: true, 2: false, 3: false, 4: false, 5: false, 6: true, 7: false, 8: true, 9: true };
+
+      const trackEvent = (name, payload = {}) => window.dispatchEvent(new CustomEvent("hailu_track", { detail: { name, payload } }));
+      const showToast = (msg) => {
+        toastEl.textContent = msg; toastEl.classList.add("is-visible");
+        clearTimeout(toastTimer); toastTimer = setTimeout(() => toastEl.classList.remove("is-visible"), 2200);
+      };
+      const openModal = (html) => { modalContent.innerHTML = html; modalBackdrop.classList.add("is-open"); };
+      const closeModal = () => modalBackdrop.classList.remove("is-open");
+      const openConfirm = (text, onOk) => {
+        openModal(`<h3 class="modal-title">温馨提示</h3><p class="modal-body-text" style="text-align:center">${text}</p><div class="modal-btn-row"><button class="btn-ghost" id="confirm-cancel">取消</button><button class="btn-coral" id="confirm-ok">确认</button></div>`);
+        document.getElementById("confirm-cancel").onclick = closeModal;
+        document.getElementById("confirm-ok").onclick = () => { closeModal(); onOk(); };
+      };
+
+      document.getElementById("modal-close").onclick = closeModal;
+      modalBackdrop.addEventListener("click", (e) => { if (e.target === modalBackdrop) closeModal(); });
+
+      function updateHud(target) {
+        pagePill.textContent = `${String(target).padStart(2, "0")} / 09`;
+        prevBtn.classList.toggle("is-hidden", target <= 1);
+      }
+
+      function goToPage(target) {
+        if (target < 1 || target > 9 || target === currentPage || isTransitioning) return;
+        isTransitioning = true;
+        waveOverlay.style.opacity = "1";
+        wavePath.setAttribute("d", "M0,100 Q25,85 50,100 T100,100 L100,100 L0,100 Z");
+        const swap = () => {
+          pages.forEach((p) => p.classList.toggle("is-active", Number(p.dataset.page) === target));
+          currentPage = target;
+          updateHud(target);
+          trackEvent("page_view", { page: target });
+        };
+        if (window.gsap) {
+          window.gsap.timeline({ onComplete: () => { waveOverlay.style.opacity = "0"; isTransitioning = false; } })
+            .to(wavePath, { duration: 0.3, ease: "power2.out", attr: { d: "M0,0 Q25,12 50,0 T100,0 L100,100 L0,100 Z" }, onComplete: swap })
+            .to(wavePath, { duration: 0.32, ease: "power2.in", attr: { d: "M0,0 Q25,0 50,0 T100,0 L100,0 L0,0 Z" } });
+        } else {
+          swap(); setTimeout(() => { waveOverlay.style.opacity = "0"; isTransitioning = false; }, 320);
+        }
+      }
+
+      // 返回上一页按钮
+      prevBtn.addEventListener("click", () => {
+        if (currentPage > 1) goToPage(currentPage - 1);
+      });
+
+      document.getElementById("audio-toggle").addEventListener("click", () => {
+        showToast(window.HAILU_AUDIO.toggle() ? "🎵 轻柔海风 BGM 已开启" : "🔇 背景音乐已静音");
+      });
+
+      // 点击海露眼药水（P8 额外联动旁边眼睛眨眼发光，所有页面文字框画面居中）
+      document.querySelectorAll(".bottle-anchor:not(#p5-center-bottle)").forEach((anchor) => {
+        anchor.innerHTML = svg.bottle();
+        anchor.addEventListener("click", (e) => {
+          e.stopPropagation();
+          window.HAILU_AUDIO.playDropSfx();
+          const pageId = Number(anchor.dataset.bottlePage);
+          if (pageId === 8) {
+            const eyeBox = document.getElementById("p8-ip-cloud");
+            eyeBox.classList.remove("is-glow-blink");
+            void eyeBox.offsetWidth;
+            eyeBox.classList.add("is-glow-blink");
+            setTimeout(() => eyeBox.classList.remove("is-glow-blink"), 950);
+          }
+          showToast(cfg.bottleMessages[pageId] || "一滴海露，eye上海风温柔");
+        });
+      });
+      document.getElementById("p5-center-bottle").innerHTML = svg.bottle();
+
+      document.querySelectorAll(".swipe-hint").forEach((hint) => {
+        hint.innerHTML = `<svg class="swipe-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 15l-6-6-6 6"/></svg><span>向上轻滑继续出海</span>`;
+        hint.addEventListener("click", () => { if (unlockedPages[currentPage]) goToPage(currentPage + 1); });
+      });
+
+      let touchStartY = 0, touchIgnore = false;
+      const wrapper = document.getElementById("pages-wrapper");
+      wrapper.addEventListener("pointerdown", (e) => {
+        touchStartY = e.clientY;
+        touchIgnore = Boolean(e.target.closest(".peel-layer, .drag-drop-item, .p9-postcard, .p9-sticker-tray, .quiz-opt-btn"));
+      });
+      wrapper.addEventListener("pointerup", (e) => {
+        if (touchIgnore || isTransitioning || modalBackdrop.classList.contains("is-open")) return;
+        const dy = e.clientY - touchStartY;
+        if (dy < -75) {
+          if (currentPage === 1) return;
+          if (!unlockedPages[currentPage]) {
+            const msg = currentPage === 2 ? "请先完成上方 3 道用眼小测试哦～" : currentPage === 7 ? "请先点击卡片看完四步护眼指南 ✨" : "先完成本页小互动，解锁下一站蓝海 ✨";
+            return showToast(msg);
+          }
+          if (currentPage < 9) goToPage(currentPage + 1);
+        } else if (dy > 90 && currentPage > 1 && currentPage !== 9) {
+          goToPage(currentPage - 1);
+        }
+      });
+
+      // P1：首次点击进入顺便轻柔启动海风 BGM
+      document.getElementById("p1-logo").innerHTML = svg.hailuLogo;
+      document.getElementById("p1-hero-bottle").innerHTML = svg.bottle();
+      document.getElementById("p1-title").innerHTML = cfg.p1.titleHtml;
+      document.getElementById("p1-subtitle").textContent = cfg.p1.subtitle;
+      document.getElementById("p1-cta").textContent = cfg.p1.cta;
+      const bokeh = document.getElementById("p1-bokeh");
+      for (let i = 0; i < 10; i++) {
+        const dot = document.createElement("div"); dot.className = "p1-bokeh-dot";
+        const size = 18 + Math.random() * 34;
+        dot.style.width = dot.style.height = `${size}px`;
+        dot.style.left = `${Math.random() * 90}%`; dot.style.top = `${15 + Math.random() * 70}%`;
+        dot.style.opacity = String(0.3 + Math.random() * 0.5);
+        bokeh.appendChild(dot);
+      }
+      const boatsLayer = document.getElementById("p1-boats");
+      [18, 42, 66].forEach((topPct, i) => {
+        const b = document.createElement("div"); b.className = "p1-boat";
+        b.style.top = `${topPct}%`; b.style.left = `${-5 + i * 28}%`;
+        b.style.animationDelay = `${-i * 5}s`;
+        b.innerHTML = `<svg width="42" height="32" viewBox="0 0 42 32" fill="#FFFFFF"><path d="M22 4 L34 22 H22 Z"/><path d="M20 9 L11 22 H20 Z"/><path d="M8 24 H36 L31 30 H13 Z"/></svg>`;
+        boatsLayer.appendChild(b);
+      });
+      document.getElementById("page-1").addEventListener("click", () => {
+        window.HAILU_AUDIO.playDropSfx();
+        window.HAILU_AUDIO.autoStartOnFirstGesture();
+        goToPage(2);
+      });
+
+      // P4
+      document.getElementById("p4-title").textContent = cfg.p4.title;
+      document.getElementById("p4-hint").textContent = cfg.p4.hint;
+      const listEl = document.getElementById("p4-cards-list"), unlockedSet = new Set();
+      function renderP4() {
+        unlockedSet.clear();
+        unlockedPages[4] = false;
+        document.getElementById("p4-bottle").classList.add("is-hidden");
+        document.getElementById("p4-swipe-hint").classList.remove("is-visible");
+        listEl.innerHTML = cfg.p4.myths.map((m, i) => `<div class="myth-card" data-myth-id="${m.id}"><div class="myth-badge">${m.emoji}</div><div class="myth-text-wrap"><div class="myth-label">常见误区 0${i + 1}</div><p class="myth-quote">“${m.cardTitle}”</p></div><div class="myth-status">点亮解锁 →</div></div>`).join("");
+        listEl.querySelectorAll(".myth-card").forEach((card) => {
+          card.addEventListener("click", () => {
+            const myth = cfg.p4.myths.find((m) => m.id === card.dataset.mythId);
+            window.HAILU_AUDIO.playDropSfx(); card.classList.add("is-unlocked");
+            card.querySelector(".myth-status").textContent = "已解锁 ✓";
+            unlockedSet.add(myth.id);
+            openModal(`<div class="modal-preline">💡 真相解锁</div><h3 class="modal-title">${myth.popupTitle}</h3><p class="modal-body-text">${myth.popupBody}</p><div class="modal-btn-row"><button class="btn-sea" onclick="window.HAILU_APP.closeModal()">收下护眼干货</button></div>`);
+            if (unlockedSet.size === cfg.p4.myths.length) {
+              unlockedPages[4] = true;
+              document.getElementById("p4-bottle").classList.remove("is-hidden");
+              document.getElementById("p4-swipe-hint").classList.add("is-visible");
+            }
+          });
+        });
+      }
+      renderP4();
+
+      // P6（中心仅居中放大的海露眼药水）
+      document.getElementById("p6-title").textContent = cfg.p6.title;
+      document.getElementById("p6-sub").textContent = cfg.p6.sub;
+      document.getElementById("p6-waves-bg").innerHTML = `<svg viewBox="0 0 360 640" width="100%" height="100%" preserveAspectRatio="none"><path d="M0 340 Q90 320 180 340 T360 340 V640 H0 Z" fill="#6FB7D9" opacity="0.26"/><path d="M0 440 Q90 420 180 440 T360 440 V640 H0 Z" fill="#2CAEE6" opacity="0.22"/></svg>`;
+      const ring = document.getElementById("p6-personas-ring"), bubble = document.getElementById("p6-bubble-card");
+      ring.innerHTML = cfg.p6.personas.map((p) => `<button class="persona-btn" data-pid="${p.id}"><span class="persona-emoji">${p.emoji}</span><span class="persona-name">${p.name}</span></button>`).join("");
+      const selectPersona = (p, btn) => {
+        ring.querySelectorAll(".persona-btn").forEach((b) => b.classList.remove("is-active"));
+        btn.classList.add("is-active");
+        bubble.innerHTML = `<div class="p6-bubble-title">${p.emoji} ${p.name}</div><p class="p6-bubble-text">${p.detail}</p>`;
+      };
+      ring.querySelectorAll(".persona-btn").forEach((btn, idx) => btn.addEventListener("click", () => { window.HAILU_AUDIO.playDropSfx(); selectPersona(cfg.p6.personas[idx], btn); }));
+      selectPersona(cfg.p6.personas[0], ring.querySelector(".persona-btn"));
+
+      // P8
+      document.getElementById("p8-slogan-box").innerHTML = cfg.p8.slogansHtml.map((s) => `<p class="p8-slogan-line">${s}</p>`).join("");
+      document.getElementById("p8-eye-svg").innerHTML = svg.eyeIP("normal");
+      document.getElementById("p8-brand-value").innerHTML = cfg.p8.valueLines.join("<br/>");
+      document.getElementById("p8-logos-row").innerHTML = `${svg.hailuLogo}${svg.ruilinLogo}`;
+      const diyBtn = document.getElementById("p8-go-diy");
+      diyBtn.textContent = cfg.p8.cta;
+      diyBtn.addEventListener("click", () => goToPage(9));
+      const particles = document.getElementById("p8-particles");
+      for (let i = 0; i < 14; i++) {
+        const p = document.createElement("div"); p.className = "p8-particle";
+        p.style.left = `${8 + Math.random() * 84}%`; p.style.bottom = `${8 + Math.random() * 45}%`;
+        p.style.animationDelay = `${Math.random() * 3}s`; particles.appendChild(p);
+      }
+
+      function configureWeChatShare(customTitle) {
+        if (window.wx && typeof window.wx.ready === "function") {
+          window.wx.ready(() => {
+            const data = { title: customTitle || cfg.share.title, desc: cfg.share.desc, link: cfg.share.link, imgUrl: cfg.share.imgUrl };
+            if (window.wx.updateAppMessageShareData) window.wx.updateAppMessageShareData(data);
+            if (window.wx.updateTimelineShareData) window.wx.updateTimelineShareData(data);
+          });
+        }
+      }
+
+      const appApi = {
+        goToPage, showToast, openModal, closeModal, openConfirm, trackEvent, configureWeChatShare,
+        getCurrentPage: () => currentPage,
+        setPageUnlocked: (p, st) => { unlockedPages[p] = st; },
+        resetAllPages: () => {}
+      };
+      window.HAILU_APP = appApi;
+
+      const p2Ctrl = window.HAILU_P2(appApi);
+      const p3Ctrl = window.HAILU_P3(appApi);
+      const p5Ctrl = window.HAILU_P5(appApi);
+      const p7Ctrl = window.HAILU_P7(appApi);
+      const p9Ctrl = window.HAILU_P9(appApi);
+
+      appApi.resetAllPages = () => {
+        unlockedPages = { 1: true, 2: false, 3: false, 4: false, 5: false, 6: true, 7: false, 8: true, 9: true };
+        p2Ctrl.reset();
+        p3Ctrl.reset();
+        renderP4();
+        p5Ctrl.reset();
+        selectPersona(cfg.p6.personas[0], ring.querySelector(".persona-btn"));
+        p7Ctrl.reset();
+        p9Ctrl.reset();
+      };
+    });
+  </script>
+</body>
+</html>
